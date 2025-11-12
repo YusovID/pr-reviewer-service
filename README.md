@@ -1,1 +1,1 @@
-# avito-techintership-autumn-2025
+# pr-reviewer-service
