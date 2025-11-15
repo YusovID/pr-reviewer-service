@@ -275,6 +275,7 @@ func (m *PullRequestServiceMock) GetStats(ctx context.Context) (*api.StatsRespon
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
+
 	return args.Get(0).(*api.StatsResponse), args.Error(1)
 }
 
@@ -296,7 +297,9 @@ func TestServer_GetStats(t *testing.T) {
 	router.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+
 	expectedJSON := `{"user_stats":[{"user_id":"u1","username":"Alice","open_reviews":1,"merged_reviews":5}]}`
+
 	assert.JSONEq(t, expectedJSON, rr.Body.String())
 	prServiceMock.AssertExpectations(t)
 }

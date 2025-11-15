@@ -33,5 +33,6 @@ func getRequestID(ctx context.Context) string {
 	if reqID, ok := ctx.Value(requestIDKey).(string); ok {
 		return reqID
 	}
+
 	return ""
 }

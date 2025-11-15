@@ -174,5 +174,6 @@ func (m *PRQueryRepositoryMock) GetUserStats(ctx context.Context) ([]domain.Stat
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
+
 	return args.Get(0).([]domain.Stats), args.Error(1)
 }
