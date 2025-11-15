@@ -168,3 +168,11 @@ func (m *TransactorMock) BeginTxx(ctx context.Context, opts *sql.TxOptions) (*sq
 
 	return tx, args.Error(1)
 }
+
+func (m *PRQueryRepositoryMock) GetUserStats(ctx context.Context) ([]domain.Stats, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]domain.Stats), args.Error(1)
+}

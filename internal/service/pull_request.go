@@ -25,6 +25,7 @@ type PullRequestService interface {
 	MergePR(ctx context.Context, prID string) (*api.PullRequest, error)
 	ReassignReviewer(ctx context.Context, prID string, oldReviewerID string) (*api.ReassignResponse, error)
 	GetReviewAssignments(ctx context.Context, userID string) (*api.GetReviewResponse, error)
+	GetStats(ctx context.Context) (*api.StatsResponse, error)
 }
 
 type PullRequestServiceImpl struct {
@@ -222,6 +223,27 @@ func (s *PullRequestServiceImpl) GetReviewAssignments(ctx context.Context, userI
 		UserId:       userID,
 		PullRequests: apiPRs,
 	}, nil
+}
+
+func (s *PullRequestServiceImpl) GetStats(ctx context.Context) (*api.StatsResponse, error) {
+	const op = "internal.service.pullrequest.GetStats"
+
+	stats, err := s.prQuery.GetUserStats(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("%s: failed to get user stats: %w", op, err)
+	}
+
+	userStats := make([]api.UserStats, len(stats))
+	for i, stat := range stats {
+		userStats[i] = api.UserStats{
+			UserId:        stat.UserID,
+			Username:      stat.Username,
+			OpenReviews:   stat.OpenReviews,
+			MergedReviews: stat.MergedReviews,
+		}
+	}
+
+	return &api.StatsResponse{UserStats: userStats}, nil
 }
 
 func (s *PullRequestServiceImpl) transaction(ctx context.Context, op string, fn func(tx *sqlx.Tx) error) error {

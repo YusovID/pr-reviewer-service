@@ -324,3 +324,35 @@ func (r *PullRequestRepository) GetReviewAssignments(ctx context.Context, userID
 
 	return prs, nil
 }
+
+func (r *PullRequestRepository) GetUserStats(ctx context.Context) ([]domain.Stats, error) {
+	const op = "internal.repository.postgres.GetUserStats"
+
+	query := `
+		SELECT
+			u.id as user_id,
+			u.username,
+			COUNT(CASE WHEN pr.status = 'OPEN' THEN 1 END) as open_reviews,
+			COUNT(CASE WHEN pr.status = 'MERGED' THEN 1 END) as merged_reviews
+		FROM
+			users u
+		LEFT JOIN
+			reviewers r ON u.id = r.user_id
+		LEFT JOIN
+			pull_requests pr ON r.pull_request_id = pr.id
+		GROUP BY
+			u.id, u.username
+		ORDER BY
+			u.username;
+	`
+
+	var stats []domain.Stats
+	if err := r.db.SelectContext(ctx, &stats, query); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []domain.Stats{}, nil
+		}
+		return nil, fmt.Errorf("%s: failed to execute query: %w", op, err)
+	}
+
+	return stats, nil
+}

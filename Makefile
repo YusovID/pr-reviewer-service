@@ -102,18 +102,22 @@ test: ## Запустить unit-тесты (без интеграционных
 	@echo "🧪 Running fast tests..."
 	@go test -v -race -short ./...
 
-test-integration: ## Запустить интеграционные E2E тесты (требует Docker)
+test-integration: ## Запустить интеграционные тесты (требует Docker)
 	@echo "🌐 Running integration tests..."
 	@go test -v -race -tags=integration ./...
 
-test-cover: ## Запустить тесты с покрытием и сгенерировать HTML-отчет
-	@echo "📊 Running tests with coverage..."
-	@go test ./... -coverprofile=coverage.out
+test-cover: ## Запустить ВСЕ тесты с покрытием и сгенерировать HTML-отчет
+	@echo "📊 Running all tests with coverage..."
+	@echo "mode: set" > coverage.out
+	@go test -race -short -coverprofile=unit.cover ./...
+	@go test -race -tags=integration -coverprofile=integration.cover ./...
+	@grep -h -v "^mode:" *.cover >> coverage.out
+	@rm -f *.cover
 	@go tool cover -html=coverage.out
 
 clean: ## Очистить артефакты сборки и тестирования
 	@echo "🧹 Cleaning up..."
-	@rm -f coverage.out
+	@rm -f coverage.out *.cover
 
 tools: ## Установить/обновить зависимости для утилит
 	@echo "🛠️ Syncing tools dependencies..."

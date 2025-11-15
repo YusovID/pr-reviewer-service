@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -267,4 +268,35 @@ func TestServer_GetUsersGetReview(t *testing.T) {
 			prServiceMock.AssertExpectations(t)
 		})
 	}
+}
+
+func (m *PullRequestServiceMock) GetStats(ctx context.Context) (*api.StatsResponse, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*api.StatsResponse), args.Error(1)
+}
+
+func TestServer_GetStats(t *testing.T) {
+	expectedStats := &api.StatsResponse{
+		UserStats: []api.UserStats{
+			{UserId: "u1", Username: "Alice", OpenReviews: 1, MergedReviews: 5},
+		},
+	}
+
+	prServiceMock := new(PullRequestServiceMock)
+	prServiceMock.On("GetStats", mock.Anything).Return(expectedStats, nil).Once()
+
+	server := NewServer(slog.New(slog.NewJSONHandler(os.Stdout, nil)), nil, nil, prServiceMock)
+	router := api.Handler(server)
+	req := httptest.NewRequest(http.MethodGet, "/stats", nil)
+	rr := httptest.NewRecorder()
+
+	router.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	expectedJSON := `{"user_stats":[{"user_id":"u1","username":"Alice","open_reviews":1,"merged_reviews":5}]}`
+	assert.JSONEq(t, expectedJSON, rr.Body.String())
+	prServiceMock.AssertExpectations(t)
 }

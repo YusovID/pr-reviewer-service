@@ -23,6 +23,7 @@ type PRQueryRepository interface {
 	GetPRByIDWithReviewers(ctx context.Context, prID string) (*domain.PullRequest, error)
 	GetReviewerIDs(ctx context.Context, ext sqlx.ExtContext, prID string) ([]string, error)
 	GetReviewAssignments(ctx context.Context, userID string) ([]domain.PullRequest, error)
+	GetUserStats(ctx context.Context) ([]domain.Stats, error)
 }
 
 type PRCommandRepository interface {

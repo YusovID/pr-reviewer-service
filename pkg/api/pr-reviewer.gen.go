@@ -91,6 +91,11 @@ type ReassignResponse struct {
 	ReplacedBy string `json:"replaced_by"`
 }
 
+// StatsResponse defines model for StatsResponse.
+type StatsResponse struct {
+	UserStats []UserStats `json:"user_stats"`
+}
+
 // Team defines model for Team.
 type Team struct {
 	Members  []TeamMember `json:"members"`
@@ -110,6 +115,14 @@ type User struct {
 	TeamName string `json:"team_name"`
 	UserId   string `json:"user_id"`
 	Username string `json:"username"`
+}
+
+// UserStats defines model for UserStats.
+type UserStats struct {
+	MergedReviews int    `json:"merged_reviews"`
+	OpenReviews   int    `json:"open_reviews"`
+	UserId        string `json:"user_id"`
+	Username      string `json:"username"`
 }
 
 // TeamNameQuery defines model for TeamNameQuery.
@@ -180,6 +193,9 @@ type ServerInterface interface {
 	// Переназначить конкретного ревьювера на другого из его команды
 	// (POST /pullRequest/reassign)
 	PostPullRequestReassign(w http.ResponseWriter, r *http.Request)
+	// Получить статистику по ревью для всех пользователей
+	// (GET /stats)
+	GetStats(w http.ResponseWriter, r *http.Request)
 	// Создать команду с участниками (создаёт/обновляет пользователей)
 	// (POST /team/add)
 	PostTeamAdd(w http.ResponseWriter, r *http.Request)
@@ -213,6 +229,12 @@ func (_ Unimplemented) PostPullRequestMerge(w http.ResponseWriter, r *http.Reque
 // Переназначить конкретного ревьювера на другого из его команды
 // (POST /pullRequest/reassign)
 func (_ Unimplemented) PostPullRequestReassign(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Получить статистику по ревью для всех пользователей
+// (GET /stats)
+func (_ Unimplemented) GetStats(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -300,6 +322,20 @@ func (siw *ServerInterfaceWrapper) PostPullRequestReassign(w http.ResponseWriter
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PostPullRequestReassign(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetStats operation middleware
+func (siw *ServerInterfaceWrapper) GetStats(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetStats(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -548,6 +584,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/pullRequest/reassign", wrapper.PostPullRequestReassign)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/stats", wrapper.GetStats)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/team/add", wrapper.PostTeamAdd)

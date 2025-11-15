@@ -32,7 +32,7 @@ func setupPRTest(t *testing.T) {
 
 func TestPullRequestRepository_Flow(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
+		t.Skip("skipping integration test in short mode.")
 	}
 
 	setupPRTest(t)
@@ -101,4 +101,45 @@ func TestPullRequestRepository_Flow(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, assignments, 1)
 	assert.Equal(t, "pr-1", assignments[0].ID)
+}
+
+func TestPullRequestRepository_GetUserStats(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode.")
+	}
+	setupPRTest(t)
+	repo := NewPullRequestRepository(testDB, logger)
+	ctx := context.Background()
+
+	pr1 := &domain.PullRequest{ID: "pr-1", Name: "PR 1", AuthorID: "author", Status: api.PullRequestStatusOPEN}
+	pr2 := &domain.PullRequest{ID: "pr-2", Name: "PR 2", AuthorID: "author", Status: api.PullRequestStatusMERGED}
+	pr3 := &domain.PullRequest{ID: "pr-3", Name: "PR 3", AuthorID: "author", Status: api.PullRequestStatusOPEN}
+
+	tx, err := testDB.Beginx()
+	require.NoError(t, err)
+	require.NoError(t, repo.CreatePR(ctx, tx, pr1))
+	require.NoError(t, repo.CreatePR(ctx, tx, pr2))
+	require.NoError(t, repo.CreatePR(ctx, tx, pr3))
+
+	require.NoError(t, repo.AssignReviewers(ctx, tx, "pr-1", []string{"rev1"}))
+	require.NoError(t, repo.AssignReviewers(ctx, tx, "pr-2", []string{"rev1"}))
+	require.NoError(t, repo.AssignReviewers(ctx, tx, "pr-3", []string{"rev2"}))
+	require.NoError(t, tx.Commit())
+
+	stats, err := repo.GetUserStats(ctx)
+	require.NoError(t, err)
+
+	statsMap := make(map[string]domain.Stats)
+	for _, s := range stats {
+		statsMap[s.UserID] = s
+	}
+
+	assert.Equal(t, 1, statsMap["rev1"].OpenReviews)
+	assert.Equal(t, 1, statsMap["rev1"].MergedReviews)
+
+	assert.Equal(t, 1, statsMap["rev2"].OpenReviews)
+	assert.Equal(t, 0, statsMap["rev2"].MergedReviews)
+
+	assert.Equal(t, 0, statsMap["author"].OpenReviews)
+	assert.Equal(t, 0, statsMap["author"].MergedReviews)
 }

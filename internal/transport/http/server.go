@@ -153,6 +153,18 @@ func (s *Server) GetUsersGetReview(w http.ResponseWriter, r *http.Request, param
 	s.respond(w, http.StatusOK, resp)
 }
 
+func (s *Server) GetStats(w http.ResponseWriter, r *http.Request) {
+	const op = "internal.transport.http.GetStats"
+
+	stats, err := s.prService.GetStats(r.Context())
+	if err != nil {
+		s.handleServiceError(w, r, op, err)
+		return
+	}
+
+	s.respond(w, http.StatusOK, stats)
+}
+
 func (s *Server) respond(w http.ResponseWriter, code int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(code)

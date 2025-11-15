@@ -39,3 +39,10 @@ type Reviewer struct {
 	PullRequestID string `db:"pull_request_id"`
 	UserID        string `db:"user_id"`
 }
+
+type Stats struct {
+	UserID        string `db:"user_id"`
+	Username      string `db:"username"`
+	OpenReviews   int    `db:"open_reviews"`
+	MergedReviews int    `db:"merged_reviews"`
+}

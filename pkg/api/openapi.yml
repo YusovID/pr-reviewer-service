@@ -154,6 +154,26 @@ components:
             pull_request_name: Add search
             author_id: u1
             status: OPEN
+    UserStats:
+      type: object
+      required: [ user_id, username, open_reviews, merged_reviews ]
+      properties:
+        user_id:
+          type: string
+        username:
+          type: string
+        open_reviews:
+          type: integer
+        merged_reviews:
+          type: integer
+    StatsResponse:
+      type: object
+      required: [ user_stats ]
+      properties:
+        user_stats:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserStats'
 
 paths:
   /team/add:
@@ -457,3 +477,24 @@ paths:
                     pull_request_name: Add search
                     author_id: u1
                     status: OPEN
+  /stats:
+    get:
+      tags: [Health]
+      summary: Получить статистику по ревью для всех пользователей
+      responses:
+        '200':
+          description: Статистика по пользователям
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsResponse'
+              example:
+                user_stats:
+                  - user_id: u1
+                    username: Alice
+                    open_reviews: 2
+                    merged_reviews: 10
+                  - user_id: u2
+                    username: Bob
+                    open_reviews: 0
+                    merged_reviews: 15
