@@ -11,6 +11,8 @@ import (
 	"github.com/YusovID/pr-reviewer-service/internal/service"
 	"github.com/YusovID/pr-reviewer-service/pkg/api"
 	"github.com/YusovID/pr-reviewer-service/pkg/logger/sl"
+	"github.com/YusovID/pr-reviewer-service/swagger"
+	"github.com/go-chi/chi/v5"
 )
 
 type Server struct {
@@ -35,8 +37,21 @@ func NewServer(
 }
 
 func (s *Server) Routes() http.Handler {
-	router := api.Handler(s)
-	return s.requestID(s.logRequest(router))
+	mux := chi.NewRouter()
+
+	mux.Use(s.requestID)
+	mux.Use(s.logRequest)
+
+	swaggerHandler, err := swagger.GetHandler()
+	if err != nil {
+		s.log.Error("failed to get swagger handler", sl.Err(err))
+	} else {
+		mux.Mount("/swagger", http.StripPrefix("/swagger", swaggerHandler))
+	}
+
+	mux.Mount("/", api.Handler(s))
+
+	return mux
 }
 
 func (s *Server) PostTeamAdd(w http.ResponseWriter, r *http.Request) {
