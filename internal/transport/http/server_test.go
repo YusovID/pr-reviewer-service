@@ -65,6 +65,7 @@ func TestServer_PostTeamAdd(t *testing.T) {
 			server := NewServer(slog.New(slog.NewJSONHandler(os.Stdout, nil)), teamServiceMock, nil, nil)
 			req := httptest.NewRequest(http.MethodPost, "/team/add", strings.NewReader(tc.requestBody))
 			req.Header.Set("Content-Type", "application/json")
+
 			rr := httptest.NewRecorder()
 
 			server.PostTeamAdd(rr, req)
@@ -134,6 +135,7 @@ func TestServer_PostPullRequestCreate(t *testing.T) {
 			server := NewServer(slog.New(slog.NewJSONHandler(os.Stdout, nil)), nil, nil, prServiceMock)
 			req := httptest.NewRequest(http.MethodPost, "/pullRequest/create", strings.NewReader(tc.requestBody))
 			req.Header.Set("Content-Type", "application/json")
+
 			rr := httptest.NewRecorder()
 
 			server.PostPullRequestCreate(rr, req)
@@ -201,6 +203,7 @@ func TestServer_PostPullRequestReassign(t *testing.T) {
 			server := NewServer(slog.New(slog.NewJSONHandler(os.Stdout, nil)), nil, nil, prServiceMock)
 			req := httptest.NewRequest(http.MethodPost, "/pullRequest/reassign", strings.NewReader(tc.requestBody))
 			req.Header.Set("Content-Type", "application/json")
+
 			rr := httptest.NewRecorder()
 
 			server.PostPullRequestReassign(rr, req)

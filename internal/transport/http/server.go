@@ -193,8 +193,10 @@ func (s *Server) handleServiceError(w http.ResponseWriter, _ *http.Request, op s
 	log := s.log.With(slog.String("op", op))
 	log.Error("service error occurred", sl.Err(err))
 
-	var teamExistsErr *apperrors.TeamAlreadyExistsError
-	var prExistsErr *apperrors.PRAlreadyExistsError
+	var (
+		teamExistsErr *apperrors.TeamAlreadyExistsError
+		prExistsErr   *apperrors.PRAlreadyExistsError
+	)
 
 	switch {
 	case errors.Is(err, apperrors.ErrInvalidRequest):

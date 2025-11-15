@@ -29,7 +29,7 @@ COMPOSE := docker compose -f $(COMPOSE_FILE)
 .DEFAULT_GOAL := help
 
 # .PHONY указывает, что цели не являются файлами.
-.PHONY: all help build up start stop restart down nuke logs ps clean generate fmt lint test test-cover tools migrate-create migrate-up migrate-down
+.PHONY: all help build up start stop restart down nuke logs ps clean generate fmt lint test test-integration test-cover tools migrate-create migrate-up migrate-down
 
 # ====================================================================================
 # GENERAL COMMANDS
@@ -98,9 +98,13 @@ lint: tools ## Запустить линтер для проверки каче�
 	@echo "🔍 Running linter..."
 	@$(GOLANGCI_LINT) run ./...
 
-test: ## Запустить unit-тесты
-	@echo "🧪 Running tests..."
-	@go test -v -race ./...
+test: ## Запустить unit-тесты (без интеграционных)
+	@echo "🧪 Running fast tests..."
+	@go test -v -race -short ./...
+
+test-integration: ## Запустить интеграционные E2E тесты (требует Docker)
+	@echo "🌐 Running integration tests..."
+	@go test -v -race -tags=integration ./...
 
 test-cover: ## Запустить тесты с покрытием и сгенерировать HTML-отчет
 	@echo "📊 Running tests with coverage..."

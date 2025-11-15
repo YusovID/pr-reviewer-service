@@ -22,12 +22,14 @@ import (
 // newMockDBAndTx создает моки для sqlx.DB и sqlx.Tx для использования в тестах.
 func newMockDBAndTx(t *testing.T) (*sqlx.DB, *sqlx.Tx, sqlmock.Sqlmock) {
 	t.Helper()
+
 	mockDB, smock, err := sqlmock.New()
 	require.NoError(t, err)
 
 	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
 
-	smock.ExpectBegin() // Ожидаем вызов Begin
+	smock.ExpectBegin()
+
 	tx, err := sqlxDB.Beginx()
 	require.NoError(t, err)
 
@@ -153,6 +155,7 @@ func TestPullRequestServiceImpl_CreatePR(t *testing.T) {
 				assert.Equal(t, tc.expectedPR.Status, pr.Status)
 				assert.ElementsMatch(t, tc.expectedPR.AssignedReviewers, pr.AssignedReviewers)
 			}
+
 			transactorMock.AssertExpectations(t)
 			prCmdMock.AssertExpectations(t)
 			userPRMock.AssertExpectations(t)
@@ -243,6 +246,7 @@ func TestPullRequestServiceImpl_MergePR(t *testing.T) {
 				assert.NoError(t, err)
 				tc.assertResult(t, pr)
 			}
+
 			transactorMock.AssertExpectations(t)
 			prCmdMock.AssertExpectations(t)
 			prQueryMock.AssertExpectations(t)

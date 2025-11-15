@@ -16,6 +16,7 @@ func (m *TeamServiceMock) CreateTeam(ctx context.Context, team api.Team) (*api.T
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
+
 	return args.Get(0).(*api.Team), args.Error(1)
 }
 
@@ -24,6 +25,7 @@ func (m *TeamServiceMock) GetTeam(ctx context.Context, name string) (*api.Team, 
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
+
 	return args.Get(0).(*api.Team), args.Error(1)
 }
 
@@ -36,6 +38,7 @@ func (m *UserServiceMock) SetIsActive(ctx context.Context, userID string, isActi
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
+
 	return args.Get(0).(*api.User), args.Error(1)
 }
 
@@ -48,6 +51,7 @@ func (m *PullRequestServiceMock) CreatePR(ctx context.Context, prID string, prNa
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
+
 	return args.Get(0).(*api.PullRequest), args.Error(1)
 }
 
@@ -56,6 +60,7 @@ func (m *PullRequestServiceMock) MergePR(ctx context.Context, prID string) (*api
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
+
 	return args.Get(0).(*api.PullRequest), args.Error(1)
 }
 
@@ -64,6 +69,7 @@ func (m *PullRequestServiceMock) ReassignReviewer(ctx context.Context, prID stri
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
+
 	return args.Get(0).(*api.ReassignResponse), args.Error(1)
 }
 
@@ -72,5 +78,6 @@ func (m *PullRequestServiceMock) GetReviewAssignments(ctx context.Context, userI
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
+
 	return args.Get(0).(*api.GetReviewResponse), args.Error(1)
 }

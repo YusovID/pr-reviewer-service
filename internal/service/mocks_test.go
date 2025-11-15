@@ -84,6 +84,7 @@ func (m *PRCommandRepositoryMock) GetPRByIDWithLock(ctx context.Context, tx *sql
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
+
 	return args.Get(0).(*domain.PullRequest), args.Error(1)
 }
 func (m *PRCommandRepositoryMock) UpdatePRStatus(ctx context.Context, tx *sqlx.Tx, prID string, status api.PullRequestStatus, mergedAt time.Time) error {
@@ -104,6 +105,7 @@ func (m *PRQueryRepositoryMock) GetPRByID(ctx context.Context, prID string) (*do
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
+
 	return args.Get(0).(*domain.PullRequest), args.Error(1)
 }
 func (m *PRQueryRepositoryMock) GetPRByIDWithReviewers(ctx context.Context, prID string) (*domain.PullRequest, error) {
@@ -111,6 +113,7 @@ func (m *PRQueryRepositoryMock) GetPRByIDWithReviewers(ctx context.Context, prID
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
+
 	return args.Get(0).(*domain.PullRequest), args.Error(1)
 }
 func (m *PRQueryRepositoryMock) GetReviewerIDs(ctx context.Context, ext sqlx.ExtContext, prID string) ([]string, error) {
@@ -118,6 +121,7 @@ func (m *PRQueryRepositoryMock) GetReviewerIDs(ctx context.Context, ext sqlx.Ext
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
+
 	return args.Get(0).([]string), args.Error(1)
 }
 func (m *PRQueryRepositoryMock) GetReviewAssignments(ctx context.Context, userID string) ([]domain.PullRequest, error) {
@@ -125,6 +129,7 @@ func (m *PRQueryRepositoryMock) GetReviewAssignments(ctx context.Context, userID
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
+
 	return args.Get(0).([]domain.PullRequest), args.Error(1)
 }
 
@@ -145,6 +150,7 @@ func (m *UserPRRepositoryMock) GetRandomActiveReviewers(ctx context.Context, tea
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
+
 	return args.Get(0).([]string), args.Error(1)
 }
 

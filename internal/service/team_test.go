@@ -98,7 +98,7 @@ func TestTeamServiceImpl_GetTeam(t *testing.T) {
 		},
 	}
 
-	expectedApiTeam := &api.Team{
+	expectedAPITeam := &api.Team{
 		TeamName: teamName,
 		Members: []api.TeamMember{
 			{UserId: "u1", Username: "Alice", IsActive: true},
@@ -119,7 +119,7 @@ func TestTeamServiceImpl_GetTeam(t *testing.T) {
 			setupMock: func(repoMock *TeamRepositoryMock) {
 				repoMock.On("GetTeamByName", ctx, teamName).Return(domainTeamWithMembers, nil).Once()
 			},
-			expectedTeam:  expectedApiTeam,
+			expectedTeam:  expectedAPITeam,
 			expectedError: nil,
 		},
 		{
