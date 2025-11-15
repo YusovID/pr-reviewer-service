@@ -36,7 +36,7 @@ func NewServer(
 
 func (s *Server) Routes() http.Handler {
 	router := api.Handler(s)
-	return s.logRequest(router)
+	return s.requestID(s.logRequest(router))
 }
 
 func (s *Server) PostTeamAdd(w http.ResponseWriter, r *http.Request) {

@@ -8,7 +8,10 @@ import (
 
 func (s *Server) logRequest(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestID := getRequestID(r.Context())
+
 		log := s.log.With(
+			slog.String("request_id", requestID),
 			slog.String("method", r.Method),
 			slog.String("path", r.URL.Path),
 			slog.String("remote_addr", r.RemoteAddr),

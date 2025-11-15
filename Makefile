@@ -52,7 +52,7 @@ build: ## Собрать или пересобрать образы сервис
 	@$(COMPOSE) build
 
 up: build ## Собрать образы и запустить сервисы. Основная команда для старта/обновления.
-	@echo "🚀 Starting services..."
+	@echo "🚀  Starting services..."
 	@$(COMPOSE) up -d
 
 start: ## Запустить ранее остановленные контейнеры (быстро, без сборки)
@@ -60,11 +60,11 @@ start: ## Запустить ранее остановленные контей�
 	@$(COMPOSE) start
 
 stop: ## Остановить запущенные сервисы (сохраняет их состояние)
-	@echo "🛑 Stopping services..."
+	@echo "🛑  Stopping services..."
 	@$(COMPOSE) stop
 
 restart: ## Перезапустить сервисы (быстрый способ: stop + start)
-	@echo "🔄 Restarting services..."
+	@echo "🔄  Restarting services..."
 	@$(MAKE) stop
 	@$(MAKE) start
 
@@ -73,7 +73,7 @@ down: ## Остановить и удалить контейнеры/сети (�
 	@$(COMPOSE) down --remove-orphans
 
 nuke: ## ВНИМАНИЕ: Полностью удалить всё (контейнеры, сети, ТОМА С ДАННЫМИ)
-	@echo "💥 Nuking the entire environment (containers, networks, VOLUMES)..."
+	@echo "💥  Nuking the entire environment (containers, networks, VOLUMES)..."
 	@$(COMPOSE) down -v --remove-orphans
 
 logs: ## Показать логи всех сервисов в реальном времени
@@ -87,27 +87,33 @@ ps: ## Показать статус запущенных контейнеров
 # ====================================================================================
 
 generate: tools ## Сгенерировать Go код из OpenAPI спецификации
-	@echo "📦 Generating Go code from OpenAPI spec..."
+	@echo "📦  Generating Go code from OpenAPI spec..."
 	@$(GO_OAPI_CODEGEN) --config=oapi-codegen.yml pkg/api/openapi.yml
 
 fmt: ## Отформатировать весь Go код
-	@echo "🎨 Formatting Go files..."
+	@echo "🎨  Formatting Go files..."
 	@gofmt -w .
 
 lint: tools ## Запустить линтер для проверки качества кода
-	@echo "🔍 Running linter..."
+	@echo "🔍  Running linter..."
 	@$(GOLANGCI_LINT) run ./...
 
 test: ## Запустить unit-тесты (без интеграционных)
-	@echo "🧪 Running fast tests..."
+	@echo "🧪  Running fast tests..."
 	@go test -v -race -short ./...
 
 test-integration: ## Запустить интеграционные тесты (требует Docker)
-	@echo "🌐 Running integration tests..."
+	@echo "🌐  Running integration tests..."
 	@go test -v -race -tags=integration ./...
 
+test-load: nuke up ## ВНИМАНИЕ: Полностью удаляет БД перед тестом!
+	@echo "⏳  Waiting for services to become healthy..."
+	@sleep 5 # Небольшая задержка для стабилизации сервисов
+	@echo "📈  Running load tests..."
+	@k6 run loadtests/main.js
+
 test-cover: ## Запустить ВСЕ тесты с покрытием и сгенерировать HTML-отчет
-	@echo "📊 Running all tests with coverage..."
+	@echo "📊  Running all tests with coverage..."
 	@echo "mode: set" > coverage.out
 	@go test -race -short -coverprofile=unit.cover ./...
 	@go test -race -tags=integration -coverprofile=integration.cover ./...
@@ -116,11 +122,11 @@ test-cover: ## Запустить ВСЕ тесты с покрытием и с�
 	@go tool cover -html=coverage.out
 
 clean: ## Очистить артефакты сборки и тестирования
-	@echo "🧹 Cleaning up..."
+	@echo "🧹  Cleaning up..."
 	@rm -f coverage.out *.cover
 
 tools: ## Установить/обновить зависимости для утилит
-	@echo "🛠️ Syncing tools dependencies..."
+	@echo "🛠️  Syncing tools dependencies..."
 	@go mod -C tools tidy
 
 # ====================================================================================
@@ -132,9 +138,9 @@ migrate-create: ## Создать новый файл миграции (инте
 	$(MIGRATE) create -ext sql -dir migrations -seq $$name
 
 migrate-up: ## Применить все 'up' миграции (требует запущенного postgres)
-	@echo "📈 Applying database migrations..."
+	@echo "📈  Applying database migrations..."
 	@$(MIGRATE) -path ./migrations -database "$(DATABASE_URL)" up
 
 migrate-down: ## Откатить последнюю 'down' миграцию (требует запущенного postgres)
-	@echo "📉 Reverting last database migration..."
+	@echo "📉  Reverting last database migration..."
 	@$(MIGRATE) -path ./migrations -database "$(DATABASE_URL)" down
