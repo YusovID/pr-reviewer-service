@@ -47,6 +47,7 @@ func (opts PrettyHandlerOptions) NewPrettyHandler(
 		// Создаем `log.Logger` для прямого вывода в `out` без префиксов.
 		l: stdLog.New(out, "", 0),
 	}
+
 	return h
 }
 
@@ -71,6 +72,7 @@ func SetupLogger(env string) *slog.Logger {
 			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}),
 		)
 	}
+
 	return log
 }
 
@@ -83,6 +85,7 @@ func setupPrettySlog() *slog.Logger {
 		},
 	}
 	handler := opts.NewPrettyHandler(os.Stdout)
+
 	return slog.New(handler)
 }
 
@@ -91,6 +94,7 @@ func setupPrettySlog() *slog.Logger {
 func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
 	// Форматируем уровень лога и добавляем цвет.
 	level := r.Level.String() + ":"
+
 	switch r.Level {
 	case slog.LevelDebug:
 		level = color.MagentaString(level)
@@ -108,13 +112,16 @@ func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
 		fields[a.Key] = a.Value.Any()
 		return true
 	})
+
 	for _, a := range h.attrs {
 		fields[a.Key] = a.Value.Any()
 	}
 
 	// Маршалим атрибуты в отформатированный JSON.
 	var b []byte
+
 	var err error
+
 	if len(fields) > 0 {
 		b, err = json.MarshalIndent(fields, "", "  ")
 		if err != nil {

@@ -39,6 +39,7 @@ func (tr *TeamRepository) CreateTeamWithUsers(ctx context.Context, team api.Team
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
+
 	defer func() {
 		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
 			log.Error("failed to rollback transaction", sl.Err(err))
@@ -78,6 +79,7 @@ func (tr *TeamRepository) CreateTeamWithUsers(ctx context.Context, team api.Team
 	}
 
 	log.Info("team created successfully", slog.Int("team_id", createdTeam.ID))
+
 	return result, nil
 }
 
@@ -96,8 +98,9 @@ func (tr *TeamRepository) insertTeam(ctx context.Context, tx *sqlx.Tx, teamName 
 	err = tx.QueryRowxContext(ctx, query, args...).StructScan(&createdTeam)
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
-			return nil, fmt.Errorf("%w: team with name '%s'", apperrors.ErrAlreadyExists, teamName)
+			return nil, &apperrors.TeamAlreadyExistsError{TeamName: teamName}
 		}
+
 		return nil, fmt.Errorf("failed to execute team insert: %w", err)
 	}
 
@@ -138,7 +141,7 @@ func (tr *TeamRepository) upsertTeamMembers(ctx context.Context, tx *sqlx.Tx, te
 
 func (tr *TeamRepository) GetTeamByName(ctx context.Context, name string) (*domain.TeamWithMembers, error) {
 	const op = "internal.repository.postgres.GetTeamByName"
-	log:=tr.log.With(slog.String("op", op), slog.String("team_name", name))
+	log := tr.log.With(slog.String("op", op), slog.String("team_name", name))
 	log.Info("getting team by name")
 
 	query, args, err := tr.sq.Select("id", "name").
@@ -154,6 +157,7 @@ func (tr *TeamRepository) GetTeamByName(ctx context.Context, name string) (*doma
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("%w: team with name '%s'", apperrors.ErrNotFound, name)
 		}
+
 		return nil, fmt.Errorf("failed to get team by name: %w", err)
 	}
 
@@ -172,6 +176,7 @@ func (tr *TeamRepository) GetTeamByName(ctx context.Context, name string) (*doma
 	}
 
 	log.Info("team getting successfull")
+
 	return &domain.TeamWithMembers{
 		ID:      team.ID,
 		Name:    team.Name,

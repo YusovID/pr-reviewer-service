@@ -1,0 +1,45 @@
+run:
+  timeout: 5m
+  issues-exit-code: 1
+  tests: true
+
+issues:
+  exclude-dirs:
+    - pkg/api
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gofmt
+    - wsl
+    - revive
+    - stylecheck
+    - unconvert
+    - prealloc
+    - whitespace
+
+linters-settings:
+  revive:
+    rules:
+      - name: cyclomatic
+        arguments: [10]
+      - name: confusing-results
+      - name: deep-exit
+      - name: indent-error-flow
+      - name: unexported-return
+
+  wsl:
+    strict-append: false
+    allow-assign-and-call: true
+    force-case-short: true
+    force-default-case: true
+    allow-cuddle-with-comments: true
+
+  stylecheck:
+    disable:
+      - ST1000

@@ -36,6 +36,7 @@ type userWithTeamName struct {
 
 func (ur *UserRepository) SetIsActive(ctx context.Context, userID string, isActive bool) (*api.User, error) {
 	const op = "internal.repository.postgres.SetIsActive"
+
 	ur.log.With(slog.String("op", op))
 	ur.log.Info("setting", slog.String("userID", userID), slog.Bool("is active", isActive))
 
@@ -54,15 +55,16 @@ func (ur *UserRepository) SetIsActive(ctx context.Context, userID string, isActi
 	}
 
 	var dbUser userWithTeamName
-	err = ur.db.QueryRowxContext(ctx, query, args...).StructScan(&dbUser)
-	if err != nil {
+	if err = ur.db.QueryRowxContext(ctx, query, args...).StructScan(&dbUser); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("%w: user with id '%s'", apperrors.ErrNotFound, userID)
 		}
+
 		return nil, fmt.Errorf("failed to execute update user status: %w", err)
 	}
 
 	ur.log.Info("setting completed successfully")
+
 	return &api.User{
 		UserId:   dbUser.UserID,
 		Username: dbUser.Username,

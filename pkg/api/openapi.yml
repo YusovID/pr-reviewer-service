@@ -120,6 +120,40 @@ components:
         status:
           type: string
           enum: [OPEN, MERGED]
+    ReassignResponse:
+      type: object
+      required: [ pr, replaced_by ]
+      properties:
+        pr:
+          $ref: '#/components/schemas/PullRequest'
+        replaced_by:
+          type: string
+          description: user_id нового ревьювера
+      example:
+        pr:
+          pull_request_id: pr-1001
+          pull_request_name: Add search
+          author_id: u1
+          status: OPEN
+          assigned_reviewers: [u3, u5]
+        replaced_by: u5
+    GetReviewResponse:
+      type: object
+      required: [ user_id, pull_requests ]
+      properties:
+        user_id:
+          type: string
+        pull_requests:
+          type: array
+          items:
+            $ref: '#/components/schemas/PullRequestShort'
+      example:
+        user_id: u2
+        pull_requests:
+          - pull_request_id: pr-1001
+            pull_request_name: Add search
+            author_id: u1
+            status: OPEN
 
 paths:
   /team/add:
@@ -367,14 +401,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required: [pr, replaced_by]
-                properties:
-                  pr:
-                    $ref: '#/components/schemas/PullRequest'
-                  replaced_by:
-                    type: string
-                    description: user_id нового ревьювера
+                $ref: '#/components/schemas/ReassignResponse'
               example:
                 pr:
                   pull_request_id: pr-1001
@@ -422,15 +449,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required: [ user_id, pull_requests ]
-                properties:
-                  user_id:
-                    type: string
-                  pull_requests:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/PullRequestShort'
+                $ref: '#/components/schemas/GetReviewResponse'
               example:
                 user_id: u2
                 pull_requests:

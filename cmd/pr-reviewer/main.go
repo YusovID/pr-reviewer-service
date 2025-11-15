@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"log"
 	"log/slog"
 	"net"
 	"net/http"
@@ -23,7 +24,11 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	cfg := config.MustLoad()
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("failed to load config: %v", err)
+	}
+
 	log := slogpretty.SetupLogger(cfg.Env)
 	log.Info("starting pr-reviewer-service", slog.String("env", cfg.Env))
 
@@ -32,6 +37,7 @@ func main() {
 		log.Error("failed to init db", sl.Err(err))
 		os.Exit(1)
 	}
+
 	defer func() {
 		if err := db.Close(); err != nil {
 			log.Error("db close failed", sl.Err(err))
@@ -40,19 +46,25 @@ func main() {
 
 	teamRepo := postgres.NewTeamRepository(db, log)
 	userRepo := postgres.NewUserRepository(db, log)
+	prRepo := postgres.NewPullRequestRepository(db, log)
 
 	teamService := service.NewTeamService(teamRepo)
 	userService := service.NewUserService(userRepo)
+	prService := service.NewPullRequestService(db, log, prRepo, prRepo, prRepo)
 
-	handler := myhttp.NewServer(log, teamService, userService)
+	handler := myhttp.NewServer(log, teamService, userService, prService)
 
 	httpServer := &http.Server{
-		Addr:    net.JoinHostPort(cfg.Server.Host, cfg.Server.Port),
-		Handler: handler.Routes(),
+		Addr:         net.JoinHostPort(cfg.Server.Host, cfg.Server.Port),
+		Handler:      handler.Routes(),
+		ReadTimeout:  cfg.Server.Timeout,
+		WriteTimeout: cfg.Server.Timeout,
+		IdleTimeout:  cfg.Server.Timeout * 2,
 	}
 
 	go func() {
 		log.Info("server started", slog.String("addr", httpServer.Addr))
+
 		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Error("server failed to start", sl.Err(err))
 			stop()

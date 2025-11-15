@@ -17,6 +17,7 @@ func (s *Server) logRequest(next http.Handler) http.Handler {
 		log.Info("request started")
 
 		t1 := time.Now()
+
 		next.ServeHTTP(w, r)
 
 		log.Info("request completed",

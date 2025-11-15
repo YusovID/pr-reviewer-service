@@ -5,8 +5,22 @@ import (
 	"fmt"
 
 	"github.com/YusovID/pr-reviewer-service/internal/domain"
+	"github.com/YusovID/pr-reviewer-service/internal/repository"
 	"github.com/YusovID/pr-reviewer-service/pkg/api"
 )
+
+type TeamService interface {
+	CreateTeam(ctx context.Context, team api.Team) (*api.Team, error)
+	GetTeam(ctx context.Context, name string) (*api.Team, error)
+}
+
+type TeamServiceImpl struct {
+	repo repository.TeamRepository
+}
+
+func NewTeamService(repo repository.TeamRepository) *TeamServiceImpl {
+	return &TeamServiceImpl{repo: repo}
+}
 
 func (s *TeamServiceImpl) CreateTeam(ctx context.Context, team api.Team) (*api.Team, error) {
 	domainTeamWithMembers, err := s.repo.CreateTeamWithUsers(ctx, team)

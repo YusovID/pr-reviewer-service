@@ -51,6 +51,12 @@ type ErrorResponse struct {
 // ErrorResponseErrorCode defines model for ErrorResponse.Error.Code.
 type ErrorResponseErrorCode string
 
+// GetReviewResponse defines model for GetReviewResponse.
+type GetReviewResponse struct {
+	PullRequests []PullRequestShort `json:"pull_requests"`
+	UserId       string             `json:"user_id"`
+}
+
 // PullRequest defines model for PullRequest.
 type PullRequest struct {
 	// AssignedReviewers user_id назначенных ревьюверов (0..2)
@@ -76,6 +82,14 @@ type PullRequestShort struct {
 
 // PullRequestShortStatus defines model for PullRequestShort.Status.
 type PullRequestShortStatus string
+
+// ReassignResponse defines model for ReassignResponse.
+type ReassignResponse struct {
+	Pr PullRequest `json:"pr"`
+
+	// ReplacedBy user_id нового ревьювера
+	ReplacedBy string `json:"replaced_by"`
+}
 
 // Team defines model for Team.
 type Team struct {

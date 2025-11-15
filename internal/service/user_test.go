@@ -70,6 +70,7 @@ func TestUserServiceImpl_SetIsActive(t *testing.T) {
 			resultUser, err := service.SetIsActive(ctx, tc.userID, tc.isActive)
 
 			assert.Equal(t, tc.expectedUser, resultUser)
+
 			if tc.expectedError {
 				assert.Error(t, err)
 				assert.ErrorIs(t, err, apperrors.ErrNotFound)

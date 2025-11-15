@@ -4,6 +4,7 @@
 
 # Temporary files
 project_structure.*
+PLAN.md
 
 # Binaries for programs and plugins
 *.exe

@@ -1,5 +1,11 @@
 package domain
 
+import (
+	"time"
+
+	"github.com/YusovID/pr-reviewer-service/pkg/api"
+)
+
 type User struct {
 	ID       string `db:"id"`
 	Username string `db:"username"`
@@ -16,4 +22,20 @@ type TeamWithMembers struct {
 	ID      int
 	Name    string
 	Members []User
+}
+
+type PullRequest struct {
+	ID                string                `db:"id"`
+	Name              string                `db:"name"`
+	AuthorID          string                `db:"author_id"`
+	Status            api.PullRequestStatus `db:"status"`
+	NeedMoreReviewers bool                  `db:"need_more_reviewers"`
+	CreatedAt         time.Time             `db:"created_at"`
+	MergedAt          *time.Time            `db:"merged_at"`
+	ReviewerIDs       []string
+}
+
+type Reviewer struct {
+	PullRequestID string `db:"pull_request_id"`
+	UserID        string `db:"user_id"`
 }

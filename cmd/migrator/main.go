@@ -30,7 +30,10 @@ type MigrationCfg struct {
 // применяет миграции и обрабатывает результаты.
 func main() {
 	// Загружаем конфигурацию. В случае ошибки приложение завершится с паникой.
-	migration := MustLoad()
+	migration, err := Load()
+	if err != nil {
+		log.Fatalf("failed to load config: %v", err)
+	}
 
 	// Создаем новый экземпляр мигратора.
 	// Источник миграций - "file://...", что указывает на чтение из локальной файловой системы.
@@ -40,7 +43,7 @@ func main() {
 		fmt.Sprintf("%s?sslmode=disable&x-migrations-table=%s", migration.ConnStr, migration.MigrationsTable),
 	)
 	if err != nil {
-		log.Fatalf("can't create new migration: %w", err)
+		log.Fatalf("can't create new migration: %v", err)
 	}
 
 	// Применяем все доступные "up" миграции.
@@ -52,7 +55,7 @@ func main() {
 			return
 		}
 		// В случае любой другой ошибки - завершаем приложение.
-		log.Fatalf("can't do migrations: %w", err)
+		log.Fatalf("can't do migrations: %v", err)
 	}
 
 	fmt.Println("migrations applied successfully")
@@ -62,35 +65,35 @@ func main() {
 // Функция имеет префикс "Must", так как она вызывает log.Fatalf (паникует)
 // при любой ошибке, что останавливает выполнение программы. Это используется
 // при старте, так как без конфигурации работа приложения невозможна.
-func MustLoad() *MigrationCfg {
+func Load() (*MigrationCfg, error) {
 	// Получаем путь к основному файлу конфигурации.
 	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {
-		log.Fatalf("CONFIG_PATH is not set")
+		return nil, fmt.Errorf("CONFIG_PATH is not set")
 	}
 
 	// Проверяем, что файл конфигурации существует.
 	if _, err := os.Stat(configPath); err != nil {
-		log.Fatalf("file '%s' doesn't exist: %w", configPath, err)
+		return nil, fmt.Errorf("file '%s' doesn't exist: %v", configPath, err)
 	}
 
 	// Получаем путь к директории с файлами миграций.
 	migrationsPath := os.Getenv("MIGRATIONS_PATH")
 	if migrationsPath == "" {
-		log.Fatalf("MIGRATIONS_PATH is not set")
+		return nil, fmt.Errorf("MIGRATIONS_PATH is not set")
 	}
 
 	// Получаем имя таблицы для хранения истории миграций.
 	migrationsTable := os.Getenv("MIGRATIONS_TABLE")
 	if migrationsTable == "" {
-		log.Fatalf("MIGRATIONS_TABLE is not set")
+		return nil, fmt.Errorf("MIGRATIONS_TABLE is not set")
 	}
 
 	// Читаем основной конфигурационный файл в структуру config.Config.
 	// Нам нужны только данные для подключения к БД.
 	var cfg config.Config
 	if err := cleanenv.ReadConfig(configPath, &cfg); err != nil {
-		log.Fatalf("can't read config: %w", err)
+		return nil, fmt.Errorf("can't read config: %v", err)
 	}
 
 	// Собираем строку подключения к PostgreSQL из загруженных данных.
@@ -107,5 +110,5 @@ func MustLoad() *MigrationCfg {
 		ConnStr:         connStr,
 		MigrationsPath:  migrationsPath,
 		MigrationsTable: migrationsTable,
-	}
+	}, nil
 }
