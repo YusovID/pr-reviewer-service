@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -12,13 +11,8 @@ import (
 	"github.com/YusovID/pr-reviewer-service/internal/domain"
 	"github.com/YusovID/pr-reviewer-service/internal/repository"
 	"github.com/YusovID/pr-reviewer-service/pkg/api"
-	"github.com/YusovID/pr-reviewer-service/pkg/logger/sl"
 	"github.com/jmoiron/sqlx"
 )
-
-type Transactor interface {
-	BeginTxx(context.Context, *sql.TxOptions) (*sqlx.Tx, error)
-}
 
 type PullRequestService interface {
 	CreatePR(ctx context.Context, prID string, prName string, authorID string) (*api.PullRequest, error)
@@ -29,8 +23,7 @@ type PullRequestService interface {
 }
 
 type PullRequestServiceImpl struct {
-	db      Transactor
-	log     *slog.Logger
+	BaseService
 	prCmd   repository.PRCommandRepository
 	prQuery repository.PRQueryRepository
 	userPR  repository.UserPRRepository
@@ -44,11 +37,10 @@ func NewPullRequestService(
 	userPR repository.UserPRRepository,
 ) *PullRequestServiceImpl {
 	return &PullRequestServiceImpl{
-		db:      db,
-		log:     log,
-		prCmd:   prCmd,
-		prQuery: prQuery,
-		userPR:  userPR,
+		BaseService: NewBaseService(db, log),
+		prCmd:       prCmd,
+		prQuery:     prQuery,
+		userPR:      userPR,
 	}
 }
 
@@ -244,29 +236,6 @@ func (s *PullRequestServiceImpl) GetStats(ctx context.Context) (*api.StatsRespon
 	}
 
 	return &api.StatsResponse{UserStats: userStats}, nil
-}
-
-func (s *PullRequestServiceImpl) transaction(ctx context.Context, op string, fn func(tx *sqlx.Tx) error) error {
-	tx, err := s.db.BeginTxx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("%s: failed to begin transaction: %w", op, err)
-	}
-
-	defer func() {
-		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
-			s.log.Error("failed to rollback transaction", sl.Err(err))
-		}
-	}()
-
-	if err := fn(tx); err != nil {
-		return err
-	}
-
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("%s: failed to commit transaction: %w", op, err)
-	}
-
-	return nil
 }
 
 func (s *PullRequestServiceImpl) validateAndFindReplacement(ctx context.Context, tx *sqlx.Tx, prID, oldReviewerID string) (string, *domain.PullRequest, error) {

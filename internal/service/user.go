@@ -2,15 +2,12 @@ package service
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"fmt"
 	"log/slog"
 
 	"github.com/YusovID/pr-reviewer-service/internal/domain"
 	"github.com/YusovID/pr-reviewer-service/internal/repository"
 	"github.com/YusovID/pr-reviewer-service/pkg/api"
-	"github.com/YusovID/pr-reviewer-service/pkg/logger/sl"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -20,13 +17,12 @@ type UserService interface {
 }
 
 type UserServiceImpl struct {
+	BaseService
 	repo     repository.UserRepository
 	teamRepo repository.TeamRepository
 	prQuery  repository.PRQueryRepository
 	prCmd    repository.PRCommandRepository
 	userPR   repository.UserPRRepository
-	db       Transactor
-	log      *slog.Logger
 }
 
 func NewUserService(
@@ -39,13 +35,12 @@ func NewUserService(
 	log *slog.Logger,
 ) *UserServiceImpl {
 	return &UserServiceImpl{
-		repo:     repo,
-		teamRepo: teamRepo,
-		prQuery:  prQuery,
-		prCmd:    prCmd,
-		userPR:   userPR,
-		db:       db,
-		log:      log,
+		BaseService: NewBaseService(db, log),
+		repo:        repo,
+		teamRepo:    teamRepo,
+		prQuery:     prQuery,
+		prCmd:       prCmd,
+		userPR:      userPR,
 	}
 }
 
@@ -108,29 +103,6 @@ func (s *UserServiceImpl) DeactivateTeam(ctx context.Context, teamName string) (
 	}
 
 	return deactivatedCount, reassignedCount, nil
-}
-
-func (s *UserServiceImpl) transaction(ctx context.Context, op string, fn func(tx *sqlx.Tx) error) error {
-	tx, err := s.db.BeginTxx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("%s: failed to begin transaction: %w", op, err)
-	}
-
-	defer func() {
-		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
-			s.log.Error("failed to rollback transaction", sl.Err(err))
-		}
-	}()
-
-	if err := fn(tx); err != nil {
-		return err
-	}
-
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("%s: failed to commit transaction: %w", op, err)
-	}
-
-	return nil
 }
 
 func (s *UserServiceImpl) reassignPRsForDeactivatedUsers(
