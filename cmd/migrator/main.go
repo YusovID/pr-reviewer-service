@@ -40,25 +40,20 @@ func main() {
 
 	switch cmd {
 	case "down":
-		if err := m.Down(); err != nil {
-			if errors.Is(err, migrate.ErrNoChange) {
-				fmt.Println("no migrations to roll back")
-				return
-			}
-			log.Fatalf("can't down migrations: %v", err)
+		err := down(m)
+		if err != nil {
+			log.Fatal(err)
 		}
+
 		fmt.Println("migrations rolled back successfully")
 	case "up":
 		fallthrough
 	default:
-		if err := m.Up(); err != nil {
-			if errors.Is(err, migrate.ErrNoChange) {
-				fmt.Println("no new migrations to apply")
-				return
-			}
-
-			log.Fatalf("can't do migrations: %v", err)
+		err := up(m)
+		if err != nil {
+			log.Fatal(err)
 		}
+
 		fmt.Println("migrations applied successfully")
 	}
 }
@@ -101,4 +96,28 @@ func Load() (*MigrationCfg, error) {
 		MigrationsPath:  migrationsPath,
 		MigrationsTable: migrationsTable,
 	}, nil
+}
+
+func up(m *migrate.Migrate) error {
+	if err := m.Up(); err != nil {
+		if errors.Is(err, migrate.ErrNoChange) {
+			return fmt.Errorf("no new migrations to apply")
+		}
+
+		return fmt.Errorf("can't do migrations: %v", err)
+	}
+
+	return nil
+}
+
+func down(m *migrate.Migrate) error {
+	if err := m.Down(); err != nil {
+		if errors.Is(err, migrate.ErrNoChange) {
+			return fmt.Errorf("no migrations to roll back")
+		}
+
+		return fmt.Errorf("can't down migrations: %v", err)
+	}
+
+	return nil
 }

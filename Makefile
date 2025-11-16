@@ -10,8 +10,8 @@ COMPOSE_FILE := compose.yml
 export
 
 CONFIG_PATH ?= ./config/local.yml
-MIGRATIONS_PATH ?= ${MIGRATIONS_PATH}
-MIGRATIONS_TABLE ?= ${MIGRATIONS_TABLE}
+MIGRATIONS_PATH ?= ./migrations
+MIGRATIONS_TABLE ?= migrations
 
 DATABASE_URL := postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable
 
