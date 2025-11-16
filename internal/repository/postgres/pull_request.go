@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math/rand"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -65,20 +66,34 @@ func (r *PullRequestRepository) GetRandomActiveReviewers(ctx context.Context, te
 		queryBuilder = queryBuilder.Where(sq.NotEq{"id": excludeUserIDs})
 	}
 
-	query, args, err := queryBuilder.
-		OrderBy("RANDOM()").
-		Limit(uint64(count)).
-		ToSql()
+	query, args, err := queryBuilder.ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("%s: failed to build query: %w", op, err)
 	}
 
-	var reviewerIDs []string
-	if err := r.db.SelectContext(ctx, &reviewerIDs, query, args...); err != nil {
+	var allCandidateIDs []string
+	if err := r.db.SelectContext(ctx, &allCandidateIDs, query, args...); err != nil {
 		return nil, fmt.Errorf("%s: failed to execute query: %w", op, err)
 	}
 
-	return reviewerIDs, nil
+	numCandidates := len(allCandidateIDs)
+	if numCandidates == 0 {
+		return []string{}, nil
+	}
+
+	if numCandidates <= count {
+		return allCandidateIDs, nil
+	}
+
+	result := make([]string, count)
+
+	for i := 0; i < count; i++ {
+		idx := rand.Intn(numCandidates-i) + i
+		allCandidateIDs[i], allCandidateIDs[idx] = allCandidateIDs[idx], allCandidateIDs[i]
+		result[i] = allCandidateIDs[i]
+	}
+
+	return result, nil
 }
 
 func (r *PullRequestRepository) CreatePR(ctx context.Context, tx *sqlx.Tx, pr *domain.PullRequest) error {

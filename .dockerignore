@@ -11,3 +11,6 @@
 # IDE
 .idea/
 .vscode/
+
+# Утилиты
+main.js
