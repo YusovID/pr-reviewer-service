@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/YusovID/pr-reviewer-service/internal/apperrors"
 	"github.com/YusovID/pr-reviewer-service/internal/domain"
 	"github.com/YusovID/pr-reviewer-service/pkg/api"
 	"github.com/stretchr/testify/assert"
@@ -136,10 +137,135 @@ func TestPullRequestRepository_GetUserStats(t *testing.T) {
 
 	assert.Equal(t, 1, statsMap["rev1"].OpenReviews)
 	assert.Equal(t, 1, statsMap["rev1"].MergedReviews)
-
 	assert.Equal(t, 1, statsMap["rev2"].OpenReviews)
 	assert.Equal(t, 0, statsMap["rev2"].MergedReviews)
-
 	assert.Equal(t, 0, statsMap["author"].OpenReviews)
 	assert.Equal(t, 0, statsMap["author"].MergedReviews)
+}
+
+func TestPullRequestRepository_CreatePR_Constraints(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+	setupPRTest(t)
+	repo := NewPullRequestRepository(testDB, logger)
+	ctx := context.Background()
+
+	pr := &domain.PullRequest{
+		ID:       "pr-duplicate",
+		Name:     "Test",
+		AuthorID: "author",
+		Status:   api.PullRequestStatusOPEN,
+	}
+	tx, _ := testDB.Beginx()
+	require.NoError(t, repo.CreatePR(ctx, tx, pr))
+	require.NoError(t, tx.Commit())
+
+	tx, _ = testDB.Beginx()
+	err := repo.CreatePR(ctx, tx, pr)
+	require.Error(t, err)
+	var prExistsErr *apperrors.PRAlreadyExistsError
+	assert.ErrorAs(t, err, &prExistsErr, "expected PRAlreadyExistsError")
+	tx.Rollback()
+
+	prInvalidAuthor := &domain.PullRequest{
+		ID:       "pr-invalid-author",
+		Name:     "Test",
+		AuthorID: "non-existent-author",
+		Status:   api.PullRequestStatusOPEN,
+	}
+	tx, _ = testDB.Beginx()
+	err = repo.CreatePR(ctx, tx, prInvalidAuthor)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, apperrors.ErrNotFound.Error())
+	tx.Rollback()
+}
+
+func TestPullRequestRepository_UpdatePRStatus_NotFound(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+	setupPRTest(t)
+	repo := NewPullRequestRepository(testDB, logger)
+	ctx := context.Background()
+
+	tx, _ := testDB.Beginx()
+	err := repo.UpdatePRStatus(ctx, tx, "non-existent-pr", api.PullRequestStatusMERGED, time.Now())
+	require.Error(t, err)
+	assert.ErrorIs(t, err, apperrors.ErrNotFound)
+	tx.Rollback()
+}
+
+func TestPullRequestRepository_GetAuthorTeamID_NotFound(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+	setupPRTest(t)
+	repo := NewPullRequestRepository(testDB, logger)
+	ctx := context.Background()
+
+	_, err := repo.GetAuthorTeamID(ctx, "non-existent-author")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, apperrors.ErrNotFound)
+}
+
+func TestPullRequestRepository_GetReviewerTeamID(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+	setupPRTest(t)
+	repo := NewPullRequestRepository(testDB, logger)
+	ctx := context.Background()
+
+	var expectedTeamID int
+	err := testDB.Get(&expectedTeamID, "SELECT id FROM teams WHERE name = 'pr-team'")
+	require.NoError(t, err)
+
+	actualTeamID, err := repo.GetReviewerTeamID(ctx, "rev1")
+	require.NoError(t, err)
+	assert.Equal(t, expectedTeamID, actualTeamID)
+
+	_, err = repo.GetReviewerTeamID(ctx, "non-existent-reviewer")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, apperrors.ErrNotFound)
+}
+
+func TestPullRequestRepository_GetPRByIDWithLock(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+	setupPRTest(t)
+	repo := NewPullRequestRepository(testDB, logger)
+	ctx := context.Background()
+
+	prToCreate := &domain.PullRequest{
+		ID:       "pr-for-lock",
+		Name:     "Test Lock",
+		AuthorID: "author",
+		Status:   api.PullRequestStatusOPEN,
+	}
+	tx, err := testDB.Beginx()
+	require.NoError(t, err)
+	require.NoError(t, repo.CreatePR(ctx, tx, prToCreate))
+	require.NoError(t, tx.Commit())
+
+	tx, err = testDB.Beginx()
+	require.NoError(t, err)
+
+	pr, err := repo.GetPRByIDWithLock(ctx, tx, "pr-for-lock")
+	require.NoError(t, err)
+	require.NotNil(t, pr)
+	assert.Equal(t, "pr-for-lock", pr.ID)
+	assert.Equal(t, "Test Lock", pr.Name)
+
+	require.NoError(t, tx.Rollback())
+
+	tx, err = testDB.Beginx()
+	require.NoError(t, err)
+
+	_, err = repo.GetPRByIDWithLock(ctx, tx, "non-existent-pr-for-lock")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, apperrors.ErrNotFound)
+
+	require.NoError(t, tx.Rollback())
 }

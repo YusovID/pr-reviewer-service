@@ -19,7 +19,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// newMockDBAndTx создает моки для sqlx.DB и sqlx.Tx для использования в тестах.
 func newMockDBAndTx(t *testing.T) (*sqlx.DB, *sqlx.Tx, sqlmock.Sqlmock) {
 	t.Helper()
 
@@ -209,7 +208,6 @@ func TestPullRequestServiceImpl_MergePR(t *testing.T) {
 
 				transactor.On("BeginTxx", mock.Anything, (*sql.TxOptions)(nil)).Return(mockedTx, nil).Once()
 				prCmd.On("GetPRByIDWithLock", mock.Anything, mockedTx, prID).Return(mergedPR, nil).Once()
-				// UpdatePRStatus should NOT be called
 				prQuery.On("GetReviewerIDs", mock.Anything, mockedTx, prID).Return([]string{"rev1"}, nil).Once()
 			},
 			assertResult: func(t *testing.T, pr *api.PullRequest) {
@@ -441,4 +439,31 @@ func TestPullRequestServiceImpl_GetReviewAssignments(t *testing.T) {
 			prQueryMock.AssertExpectations(t)
 		})
 	}
+}
+
+func TestPullRequestServiceImpl_GetStats(t *testing.T) {
+	ctx := context.Background()
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	prQueryMock := new(PRQueryRepositoryMock)
+
+	service := NewPullRequestService(nil, logger, nil, prQueryMock, nil)
+
+	domainStats := []domain.Stats{
+		{UserID: "u1", Username: "Alice", OpenReviews: 1, MergedReviews: 10},
+	}
+	prQueryMock.On("GetUserStats", ctx).Return(domainStats, nil).Once()
+
+	statsResp, err := service.GetStats(ctx)
+	require.NoError(t, err)
+	require.NotNil(t, statsResp)
+	require.Len(t, statsResp.UserStats, 1)
+	assert.Equal(t, "u1", statsResp.UserStats[0].UserId)
+	assert.Equal(t, 10, statsResp.UserStats[0].MergedReviews)
+	prQueryMock.AssertExpectations(t)
+
+	prQueryMock.On("GetUserStats", ctx).Return(nil, errors.New("db error")).Once()
+
+	_, err = service.GetStats(ctx)
+	require.Error(t, err)
+	prQueryMock.AssertExpectations(t)
 }

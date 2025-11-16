@@ -64,10 +64,15 @@ func TestMain(m *testing.M) {
 	projectRoot := filepath.Join(filepath.Dir(b), "../../../")
 	migrationsPath := filepath.Join(projectRoot, "migrations")
 
-	migrator, err := migrate.New("file://"+migrationsPath, connStr)
+	slashedPath := filepath.ToSlash(migrationsPath)
+
+	sourceURL := "file://" + slashedPath
+
+	migrator, err := migrate.New(sourceURL, connStr)
 	if err != nil {
-		log.Fatalf("failed to create migrator: %s", err)
+		log.Fatalf("failed to create migrator with url '%s': %s", sourceURL, err)
 	}
+
 	if err = migrator.Up(); err != nil {
 		log.Fatalf("failed to run migrations: %s", err)
 	}

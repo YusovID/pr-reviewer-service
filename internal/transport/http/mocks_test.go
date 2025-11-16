@@ -81,3 +81,11 @@ func (m *PullRequestServiceMock) GetReviewAssignments(ctx context.Context, userI
 
 	return args.Get(0).(*api.GetReviewResponse), args.Error(1)
 }
+
+func (m *PullRequestServiceMock) GetStats(ctx context.Context) (*api.StatsResponse, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*api.StatsResponse), args.Error(1)
+}
