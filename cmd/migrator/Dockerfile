@@ -18,7 +18,7 @@ WORKDIR /
 
 COPY --from=builder /migrator /migrator
 COPY ./migrations /migrations
-COPY ./config/local.yml /config/local.yml
+COPY ./config/docker.yml /config/docker.yml
 
 EXPOSE 8081
 

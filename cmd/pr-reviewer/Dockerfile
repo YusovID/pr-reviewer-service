@@ -17,7 +17,7 @@ FROM alpine:3.22
 WORKDIR /
 
 COPY --from=builder /pr-reviewer /pr-reviewer
-COPY ./config/local.yml /config/local.yml
+COPY ./config/docker.yml /config/docker.yml
 
 EXPOSE 8080
 

@@ -7,7 +7,7 @@ services:
     env_file:
       - .env
     environment:
-      - CONFIG_PATH=./config/local.yml
+      - CONFIG_PATH=./config/docker.yml
     ports:
       - 8080:8080
     networks:
@@ -44,7 +44,7 @@ services:
     env_file:
       - .env
     environment:
-      - CONFIG_PATH=./config/local.yml
+      - CONFIG_PATH=./config/docker.yml
     depends_on:
       postgres:
         condition: service_healthy

@@ -10,15 +10,15 @@ import (
 )
 
 type Config struct {
-	Env      string `yml:"env" default:"local"`
-	Postgres Postgres
-	Server   Server `yml:"server" env-required:"true"`
+	Env      string   `yml:"env" default:"local"`
+	Postgres Postgres `yml:"postgres"`
+	Server   Server   `yml:"server" env-required:"true"`
 }
 
 type Postgres struct {
 	Username        string        `env:"POSTGRES_USER" env-required:"true"`
 	Password        string        `env:"POSTGRES_PASSWORD" env-required:"true"`
-	Host            string        `env:"POSTGRES_HOST" env-required:"true"`
+	Host            string        `yml:"host" env-required:"true"`
 	Port            string        `env:"POSTGRES_PORT" env-required:"true"`
 	Database        string        `env:"POSTGRES_DB" env-required:"true"`
 	MaxOpenConns    int           `yml:"max_open_conns" default:"50"`

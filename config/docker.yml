@@ -4,7 +4,7 @@ server:
   port: "8080"
   timeout: "4s"
 postgres:
-  host: "localhost"
+  host: "postgres"
   max_open_conns: 20
   max_idle_conns: 10
   conn_max_lifetime: "5m"
