@@ -60,7 +60,7 @@
 
 1.  **Клонируйте репозиторий:**
     ```bash
-    git clone github.com/YusovID/pr-reviewer-service
+    git clone https://github.com/YusovID/pr-reviewer-service
     cd pr-reviewer-service
     ```
 
