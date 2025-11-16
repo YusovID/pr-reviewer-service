@@ -24,7 +24,10 @@ components:
       required: true
       schema:
         type: string
-      description: Идентификатор пользователя
+        description: "Идентификатор пользователя. Допускаются буквы, цифры, дефисы и подчеркивания."
+        pattern: '^[a-zA-Z0-9_-]+$'
+        minLength: 1
+        maxLength: 100
   schemas:
     ErrorResponse:
       type: object
@@ -55,6 +58,10 @@ components:
       properties:
         user_id:
           type: string
+          description: "Идентификатор пользователя. Допускаются буквы, цифры, дефисы и подчеркивания."
+          pattern: '^[a-zA-Z0-9_-]+$'
+          minLength: 1
+          maxLength: 100
         username:
           type: string
         is_active:
@@ -75,6 +82,10 @@ components:
       properties:
         user_id:
           type: string
+          description: "Идентификатор пользователя. Допускаются буквы, цифры, дефисы и подчеркивания."
+          pattern: '^[a-zA-Z0-9_-]+$'
+          minLength: 1
+          maxLength: 100
         username:
           type: string
         team_name:
@@ -87,10 +98,18 @@ components:
       properties:
         pull_request_id:
           type: string
+          description: "Идентификатор PR. Допускаются буквы, цифры, дефисы и подчеркивания."
+          pattern: '^[a-zA-Z0-9_-]+$'
+          minLength: 1
+          maxLength: 100
         pull_request_name:
           type: string
         author_id:
           type: string
+          description: "Идентификатор автора. Допускаются буквы, цифры, дефисы и подчеркивания."
+          pattern: '^[a-zA-Z0-9_-]+$'
+          minLength: 1
+          maxLength: 100
         status:
           type: string
           enum: [OPEN, MERGED]
@@ -272,6 +291,10 @@ paths:
               properties:
                 user_id:
                   type: string
+                  description: "Идентификатор пользователя. Допускаются буквы, цифры, дефисы и подчеркивания."
+                  pattern: '^[a-zA-Z0-9_-]+$'
+                  minLength: 1
+                  maxLength: 100
                 is_active:
                   type: boolean
             example:
@@ -318,9 +341,19 @@ paths:
               type: object
               required: [ pull_request_id, pull_request_name, author_id ]
               properties:
-                pull_request_id: { type: string }
+                pull_request_id:
+                  type: string
+                  description: "Идентификатор PR. Допускаются буквы, цифры, дефисы и подчеркивания."
+                  pattern: '^[a-zA-Z0-9_-]+$'
+                  minLength: 1
+                  maxLength: 100
                 pull_request_name: { type: string }
-                author_id: { type: string }
+                author_id:
+                  type: string
+                  description: "Идентификатор автора. Допускаются буквы, цифры, дефисы и подчеркивания."
+                  pattern: '^[a-zA-Z0-9_-]+$'
+                  minLength: 1
+                  maxLength: 100
             example:
               pull_request_id: pr-1001
               pull_request_name: Add search

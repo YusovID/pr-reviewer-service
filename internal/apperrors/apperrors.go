@@ -12,6 +12,7 @@ var (
 	ErrPRAlreadyExists   = errors.New("pull request already exists")
 
 	ErrInvalidRequest = errors.New("invalid request body")
+	ErrValidation     = errors.New("validation failed")
 
 	ErrPRMerged            = errors.New("cannot modify merged pull request")
 	ErrReviewerNotAssigned = errors.New("reviewer is not assigned to this PR")

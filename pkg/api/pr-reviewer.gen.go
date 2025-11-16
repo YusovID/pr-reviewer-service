@@ -60,13 +60,17 @@ type GetReviewResponse struct {
 // PullRequest defines model for PullRequest.
 type PullRequest struct {
 	// AssignedReviewers user_id назначенных ревьюверов (0..2)
-	AssignedReviewers []string          `json:"assigned_reviewers"`
-	AuthorId          string            `json:"author_id"`
-	CreatedAt         *time.Time        `json:"createdAt"`
-	MergedAt          *time.Time        `json:"mergedAt"`
-	PullRequestId     string            `json:"pull_request_id"`
-	PullRequestName   string            `json:"pull_request_name"`
-	Status            PullRequestStatus `json:"status"`
+	AssignedReviewers []string `json:"assigned_reviewers"`
+
+	// AuthorId Идентификатор автора. Допускаются буквы, цифры, дефисы и подчеркивания.
+	AuthorId  string     `json:"author_id"`
+	CreatedAt *time.Time `json:"createdAt"`
+	MergedAt  *time.Time `json:"mergedAt"`
+
+	// PullRequestId Идентификатор PR. Допускаются буквы, цифры, дефисы и подчеркивания.
+	PullRequestId   string            `json:"pull_request_id"`
+	PullRequestName string            `json:"pull_request_name"`
+	Status          PullRequestStatus `json:"status"`
 }
 
 // PullRequestStatus defines model for PullRequest.Status.
@@ -104,7 +108,9 @@ type Team struct {
 
 // TeamMember defines model for TeamMember.
 type TeamMember struct {
-	IsActive bool   `json:"is_active"`
+	IsActive bool `json:"is_active"`
+
+	// UserId Идентификатор пользователя. Допускаются буквы, цифры, дефисы и подчеркивания.
 	UserId   string `json:"user_id"`
 	Username string `json:"username"`
 }
@@ -113,6 +119,8 @@ type TeamMember struct {
 type User struct {
 	IsActive bool   `json:"is_active"`
 	TeamName string `json:"team_name"`
+
+	// UserId Идентификатор пользователя. Допускаются буквы, цифры, дефисы и подчеркивания.
 	UserId   string `json:"user_id"`
 	Username string `json:"username"`
 }
@@ -128,12 +136,15 @@ type UserStats struct {
 // TeamNameQuery defines model for TeamNameQuery.
 type TeamNameQuery = string
 
-// UserIdQuery defines model for UserIdQuery.
+// UserIdQuery Идентификатор пользователя. Допускаются буквы, цифры, дефисы и подчеркивания.
 type UserIdQuery = string
 
 // PostPullRequestCreateJSONBody defines parameters for PostPullRequestCreate.
 type PostPullRequestCreateJSONBody struct {
-	AuthorId        string `json:"author_id"`
+	// AuthorId Идентификатор автора. Допускаются буквы, цифры, дефисы и подчеркивания.
+	AuthorId string `json:"author_id"`
+
+	// PullRequestId Идентификатор PR. Допускаются буквы, цифры, дефисы и подчеркивания.
 	PullRequestId   string `json:"pull_request_id"`
 	PullRequestName string `json:"pull_request_name"`
 }
@@ -157,14 +168,15 @@ type GetTeamGetParams struct {
 
 // GetUsersGetReviewParams defines parameters for GetUsersGetReview.
 type GetUsersGetReviewParams struct {
-	// UserId Идентификатор пользователя
 	UserId UserIdQuery `form:"user_id" json:"user_id"`
 }
 
 // PostUsersSetIsActiveJSONBody defines parameters for PostUsersSetIsActive.
 type PostUsersSetIsActiveJSONBody struct {
-	IsActive bool   `json:"is_active"`
-	UserId   string `json:"user_id"`
+	IsActive bool `json:"is_active"`
+
+	// UserId Идентификатор пользователя. Допускаются буквы, цифры, дефисы и подчеркивания.
+	UserId string `json:"user_id"`
 }
 
 // PostPullRequestCreateJSONRequestBody defines body for PostPullRequestCreate for application/json ContentType.

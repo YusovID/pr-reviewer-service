@@ -87,5 +87,6 @@ func (m *PullRequestServiceMock) GetStats(ctx context.Context) (*api.StatsRespon
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
+
 	return args.Get(0).(*api.StatsResponse), args.Error(1)
 }

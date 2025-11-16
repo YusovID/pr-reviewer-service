@@ -67,6 +67,7 @@ func TestServer_PostTeamAdd(t *testing.T) {
 
 			req := httptest.NewRequest(http.MethodPost, "/team/add", strings.NewReader(tc.requestBody))
 			req.Header.Set("Content-Type", "application/json")
+
 			rr := httptest.NewRecorder()
 
 			router := api.Handler(server)
@@ -175,6 +176,7 @@ func TestServer_PostUsersSetIsActive(t *testing.T) {
 
 			req := httptest.NewRequest(http.MethodPost, "/users/setIsActive", strings.NewReader(tc.requestBody))
 			req.Header.Set("Content-Type", "application/json")
+
 			rr := httptest.NewRecorder()
 
 			router := api.Handler(server)
@@ -255,6 +257,7 @@ func TestServer_PostPullRequestCreate(t *testing.T) {
 
 			req := httptest.NewRequest(http.MethodPost, "/pullRequest/create", strings.NewReader(tc.requestBody))
 			req.Header.Set("Content-Type", "application/json")
+
 			rr := httptest.NewRecorder()
 
 			router := api.Handler(server)
@@ -315,6 +318,7 @@ func TestServer_PostPullRequestMerge(t *testing.T) {
 
 			req := httptest.NewRequest(http.MethodPost, "/pullRequest/merge", strings.NewReader(tc.requestBody))
 			req.Header.Set("Content-Type", "application/json")
+
 			rr := httptest.NewRecorder()
 
 			router := api.Handler(server)
@@ -393,6 +397,7 @@ func TestServer_PostPullRequestReassign(t *testing.T) {
 
 			req := httptest.NewRequest(http.MethodPost, "/pullRequest/reassign", strings.NewReader(tc.requestBody))
 			req.Header.Set("Content-Type", "application/json")
+
 			rr := httptest.NewRecorder()
 
 			router := api.Handler(server)

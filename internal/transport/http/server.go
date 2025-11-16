@@ -4,11 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 
 	"github.com/YusovID/pr-reviewer-service/internal/apperrors"
 	"github.com/YusovID/pr-reviewer-service/internal/service"
+	"github.com/YusovID/pr-reviewer-service/internal/validation"
 	"github.com/YusovID/pr-reviewer-service/pkg/api"
 	"github.com/YusovID/pr-reviewer-service/pkg/logger/sl"
 	"github.com/YusovID/pr-reviewer-service/swagger"
@@ -57,13 +59,27 @@ func (s *Server) Routes() http.Handler {
 func (s *Server) PostTeamAdd(w http.ResponseWriter, r *http.Request) {
 	const op = "internal.transport.http.PostTeamAdd"
 
-	var req api.Team
-	if err := s.decode(r, &req); err != nil {
+	var req createTeamRequest
+	if err := s.decodeAndValidate(r, &req); err != nil {
 		s.handleServiceError(w, r, op, err)
 		return
 	}
 
-	team, err := s.teamService.CreateTeam(r.Context(), req)
+	apiMembers := make([]api.TeamMember, len(req.Members))
+	for i, m := range req.Members {
+		apiMembers[i] = api.TeamMember{
+			UserId:   m.UserID,
+			Username: m.Username,
+			IsActive: m.IsActive,
+		}
+	}
+
+	apiTeam := api.Team{
+		TeamName: req.TeamName,
+		Members:  apiMembers,
+	}
+
+	team, err := s.teamService.CreateTeam(r.Context(), apiTeam)
 	if err != nil {
 		s.handleServiceError(w, r, op, err)
 		return
@@ -87,13 +103,13 @@ func (s *Server) GetTeamGet(w http.ResponseWriter, r *http.Request, params api.G
 func (s *Server) PostUsersSetIsActive(w http.ResponseWriter, r *http.Request) {
 	const op = "internal.transport.http.PostUsersSetIsActive"
 
-	var req api.PostUsersSetIsActiveJSONBody
-	if err := s.decode(r, &req); err != nil {
+	var req setUserActiveRequest
+	if err := s.decodeAndValidate(r, &req); err != nil {
 		s.handleServiceError(w, r, op, err)
 		return
 	}
 
-	user, err := s.userService.SetIsActive(r.Context(), req.UserId, req.IsActive)
+	user, err := s.userService.SetIsActive(r.Context(), req.UserID, req.IsActive)
 	if err != nil {
 		s.handleServiceError(w, r, op, err)
 		return
@@ -105,13 +121,13 @@ func (s *Server) PostUsersSetIsActive(w http.ResponseWriter, r *http.Request) {
 func (s *Server) PostPullRequestCreate(w http.ResponseWriter, r *http.Request) {
 	const op = "internal.transport.http.PostPullRequestCreate"
 
-	var req api.PostPullRequestCreateJSONBody
-	if err := s.decode(r, &req); err != nil {
+	var req createPRRequest
+	if err := s.decodeAndValidate(r, &req); err != nil {
 		s.handleServiceError(w, r, op, err)
 		return
 	}
 
-	pr, err := s.prService.CreatePR(r.Context(), req.PullRequestId, req.PullRequestName, req.AuthorId)
+	pr, err := s.prService.CreatePR(r.Context(), req.PullRequestID, req.PullRequestName, req.AuthorID)
 	if err != nil {
 		s.handleServiceError(w, r, op, err)
 		return
@@ -123,13 +139,13 @@ func (s *Server) PostPullRequestCreate(w http.ResponseWriter, r *http.Request) {
 func (s *Server) PostPullRequestMerge(w http.ResponseWriter, r *http.Request) {
 	const op = "internal.transport.http.PostPullRequestMerge"
 
-	var req api.PostPullRequestMergeJSONBody
-	if err := s.decode(r, &req); err != nil {
+	var req mergePRRequest
+	if err := s.decodeAndValidate(r, &req); err != nil {
 		s.handleServiceError(w, r, op, err)
 		return
 	}
 
-	pr, err := s.prService.MergePR(r.Context(), req.PullRequestId)
+	pr, err := s.prService.MergePR(r.Context(), req.PullRequestID)
 	if err != nil {
 		s.handleServiceError(w, r, op, err)
 		return
@@ -141,13 +157,13 @@ func (s *Server) PostPullRequestMerge(w http.ResponseWriter, r *http.Request) {
 func (s *Server) PostPullRequestReassign(w http.ResponseWriter, r *http.Request) {
 	const op = "internal.transport.http.PostPullRequestReassign"
 
-	var req api.PostPullRequestReassignJSONBody
-	if err := s.decode(r, &req); err != nil {
+	var req reassignRequest
+	if err := s.decodeAndValidate(r, &req); err != nil {
 		s.handleServiceError(w, r, op, err)
 		return
 	}
 
-	resp, err := s.prService.ReassignReviewer(r.Context(), req.PullRequestId, req.OldUserId)
+	resp, err := s.prService.ReassignReviewer(r.Context(), req.PullRequestID, req.OldUserID)
 	if err != nil {
 		s.handleServiceError(w, r, op, err)
 		return
@@ -208,8 +224,22 @@ func (s *Server) respondAPIError(w http.ResponseWriter, code int, apiCode api.Er
 	s.respond(w, code, errResp)
 }
 
-func (s *Server) decode(r *http.Request, v interface{}) error {
-	if err := json.NewDecoder(r.Body).Decode(v); err != nil {
+func (s *Server) decodeAndValidate(r *http.Request, v interface{}) error {
+	if err := s.decode(r.Body, v); err != nil {
+		return err
+	}
+
+	if err := validation.ValidateStruct(v); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Server) decode(body io.ReadCloser, v interface{}) error {
+	defer body.Close()
+
+	if err := json.NewDecoder(body).Decode(v); err != nil {
 		return fmt.Errorf("%w: %w", apperrors.ErrInvalidRequest, err)
 	}
 
@@ -223,9 +253,13 @@ func (s *Server) handleServiceError(w http.ResponseWriter, _ *http.Request, op s
 	var (
 		teamExistsErr *apperrors.TeamAlreadyExistsError
 		prExistsErr   *apperrors.PRAlreadyExistsError
+		validationErr *validation.ValidationError
 	)
 
 	switch {
+	case errors.As(err, &validationErr):
+		wrappedErr := fmt.Errorf("%w: %s", apperrors.ErrValidation, validationErr.Error())
+		s.respondError(w, http.StatusBadRequest, wrappedErr.Error())
 	case errors.Is(err, apperrors.ErrInvalidRequest):
 		s.respondError(w, http.StatusBadRequest, "invalid request body")
 	case errors.Is(err, apperrors.ErrNotFound):
