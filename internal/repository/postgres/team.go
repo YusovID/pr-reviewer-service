@@ -157,7 +157,7 @@ func (tr *TeamRepository) GetTeamByName(ctx context.Context, ext sqlx.ExtContext
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("%w: team with name '%s'", apperrors.ErrNotFound, name)
 		}
-		
+
 		return nil, fmt.Errorf("failed to get team by name: %w", err)
 	}
 

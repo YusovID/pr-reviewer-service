@@ -32,6 +32,7 @@ func (m *TeamRepositoryMock) CreateTeamWithUsers(ctx context.Context, team api.T
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
+
 	return args.Get(0).(*domain.TeamWithMembers), args.Error(1)
 }
 
@@ -136,6 +137,7 @@ func (m *PRQueryRepositoryMock) GetOpenPRsByReviewers(ctx context.Context, tx *s
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
+
 	return args.Get(0).([]domain.PullRequest), args.Error(1)
 }
 
@@ -189,5 +191,6 @@ func (m *UserRepositoryMock) DeactivateUsersByTeamID(ctx context.Context, tx *sq
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
+
 	return args.Get(0).([]string), args.Error(1)
 }

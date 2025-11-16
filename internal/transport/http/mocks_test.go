@@ -91,7 +91,7 @@ func (m *PullRequestServiceMock) GetStats(ctx context.Context) (*api.StatsRespon
 	return args.Get(0).(*api.StatsResponse), args.Error(1)
 }
 
-func (m *UserServiceMock) DeactivateTeam(ctx context.Context, teamName string) (int, int, error) {
+func (m *UserServiceMock) DeactivateTeam(ctx context.Context, teamName string) (deactivatedCount int, reassignedCount int, err error) {
 	args := m.Called(ctx, teamName)
 	return args.Int(0), args.Int(1), args.Error(2)
 }

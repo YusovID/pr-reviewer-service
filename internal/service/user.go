@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/YusovID/pr-reviewer-service/internal/domain"
 	"github.com/YusovID/pr-reviewer-service/internal/repository"
 	"github.com/YusovID/pr-reviewer-service/pkg/api"
 	"github.com/YusovID/pr-reviewer-service/pkg/logger/sl"
@@ -15,7 +16,7 @@ import (
 
 type UserService interface {
 	SetIsActive(ctx context.Context, userID string, isActive bool) (*api.User, error)
-	DeactivateTeam(ctx context.Context, teamName string) (int, int, error)
+	DeactivateTeam(ctx context.Context, teamName string) (deactivatedCount int, reassignedCount int, err error)
 }
 
 type UserServiceImpl struct {
@@ -57,13 +58,11 @@ func (s *UserServiceImpl) SetIsActive(ctx context.Context, userID string, isActi
 	return user, nil
 }
 
-func (s *UserServiceImpl) DeactivateTeam(ctx context.Context, teamName string) (int, int, error) {
+func (s *UserServiceImpl) DeactivateTeam(ctx context.Context, teamName string) (deactivatedCount int, reassignedCount int, err error) {
 	const op = "internal.service.user.DeactivateTeam"
 	log := s.log.With(slog.String("op", op), slog.String("team_name", teamName))
 
-	var deactivatedCount, reassignedCount int
-
-	err := s.transaction(ctx, op, func(tx *sqlx.Tx) error {
+	err = s.transaction(ctx, op, func(tx *sqlx.Tx) error {
 		team, err := s.teamRepo.GetTeamByName(ctx, tx, teamName)
 		if err != nil {
 			return err
@@ -73,7 +72,9 @@ func (s *UserServiceImpl) DeactivateTeam(ctx context.Context, teamName string) (
 		if err != nil {
 			return fmt.Errorf("failed to deactivate users: %w", err)
 		}
+
 		deactivatedCount = len(deactivatedUserIDs)
+
 		if deactivatedCount == 0 {
 			log.Info("no active users to deactivate in this team")
 			return nil
@@ -83,6 +84,7 @@ func (s *UserServiceImpl) DeactivateTeam(ctx context.Context, teamName string) (
 		if err != nil {
 			return fmt.Errorf("failed to get open PRs: %w", err)
 		}
+
 		reassignedCount = len(prsToReassign)
 		if reassignedCount == 0 {
 			log.Info("no open PRs to reassign for deactivated users")
@@ -94,37 +96,8 @@ func (s *UserServiceImpl) DeactivateTeam(ctx context.Context, teamName string) (
 			deactivatedSet[id] = struct{}{}
 		}
 
-		for _, pr := range prsToReassign {
-			originalReviewers := make([]string, len(pr.ReviewerIDs))
-			copy(originalReviewers, pr.ReviewerIDs)
-
-			for _, oldReviewerID := range originalReviewers {
-				if _, ok := deactivatedSet[oldReviewerID]; ok {
-					replacementTeamID := team.ID
-
-					excludeIDs := excludeIDs(&pr, pr.ReviewerIDs)
-
-					candidates, err := s.userPR.GetRandomActiveReviewers(ctx, replacementTeamID, excludeIDs, 1)
-					if err != nil {
-						return fmt.Errorf("failed to find replacement for pr %s: %w", pr.ID, err)
-					}
-
-					if len(candidates) > 0 {
-						newReviewerID := candidates[0]
-						if err := s.prCmd.ReplaceReviewer(ctx, tx, pr.ID, oldReviewerID, newReviewerID); err != nil {
-							return fmt.Errorf("failed to replace reviewer for pr %s: %w", pr.ID, err)
-						}
-						for i, id := range pr.ReviewerIDs {
-							if id == oldReviewerID {
-								pr.ReviewerIDs[i] = newReviewerID
-								break
-							}
-						}
-					} else {
-						log.Warn("no replacement candidate found", "pr_id", pr.ID, "old_reviewer_id", oldReviewerID)
-					}
-				}
-			}
+		if err := s.reassignPRsForDeactivatedUsers(ctx, tx, team, prsToReassign, deactivatedSet); err != nil {
+			return fmt.Errorf("failed during PR reassignment: %w", err)
 		}
 
 		return nil
@@ -156,5 +129,50 @@ func (s *UserServiceImpl) transaction(ctx context.Context, op string, fn func(tx
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("%s: failed to commit transaction: %w", op, err)
 	}
+
+	return nil
+}
+
+func (s *UserServiceImpl) reassignPRsForDeactivatedUsers(
+	ctx context.Context,
+	tx *sqlx.Tx,
+	team *domain.TeamWithMembers,
+	prsToReassign []domain.PullRequest,
+	deactivatedSet map[string]struct{},
+) error {
+	log := s.log.With(slog.String("op", "internal.service.user.reassignPRs"))
+
+	for _, pr := range prsToReassign {
+		originalReviewers := make([]string, len(pr.ReviewerIDs))
+		copy(originalReviewers, pr.ReviewerIDs)
+
+		for _, oldReviewerID := range originalReviewers {
+			if _, isDeactivated := deactivatedSet[oldReviewerID]; isDeactivated {
+				excludeIDs := excludeIDs(&pr, pr.ReviewerIDs)
+
+				candidates, err := s.userPR.GetRandomActiveReviewers(ctx, team.ID, excludeIDs, 1)
+				if err != nil {
+					return fmt.Errorf("failed to find replacement for pr %s: %w", pr.ID, err)
+				}
+
+				if len(candidates) > 0 {
+					newReviewerID := candidates[0]
+					if err := s.prCmd.ReplaceReviewer(ctx, tx, pr.ID, oldReviewerID, newReviewerID); err != nil {
+						return fmt.Errorf("failed to replace reviewer for pr %s: %w", pr.ID, err)
+					}
+
+					for i, id := range pr.ReviewerIDs {
+						if id == oldReviewerID {
+							pr.ReviewerIDs[i] = newReviewerID
+							break
+						}
+					}
+				} else {
+					log.Warn("no replacement candidate found", "pr_id", pr.ID, "old_reviewer_id", oldReviewerID)
+				}
+			}
+		}
+	}
+
 	return nil
 }

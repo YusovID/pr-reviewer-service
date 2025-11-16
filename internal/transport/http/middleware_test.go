@@ -9,13 +9,16 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRequestIDMiddleware(t *testing.T) {
 	nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := getRequestID(r.Context())
+
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(id))
+		_, err := w.Write([]byte(id))
+		require.NoError(t, err)
 	})
 
 	server := &Server{}
@@ -37,8 +40,10 @@ func TestRequestIDMiddleware(t *testing.T) {
 
 	t.Run("Use existing request ID from header", func(t *testing.T) {
 		const existingID = "test-request-id-123"
+
 		req := httptest.NewRequest("GET", "http://testing", nil)
 		req.Header.Set(requestIDHeader, existingID)
+
 		rr := httptest.NewRecorder()
 
 		handlerToTest.ServeHTTP(rr, req)

@@ -357,6 +357,26 @@ func (r *PullRequestRepository) GetUserStats(ctx context.Context) ([]domain.Stat
 	return stats, nil
 }
 
+func mapReviewersToPRs(prs []domain.PullRequest, reviewers []domain.Reviewer) []domain.PullRequest {
+	prMap := make(map[string]*domain.PullRequest, len(prs))
+	for i := range prs {
+		prMap[prs[i].ID] = &prs[i]
+	}
+
+	for _, reviewer := range reviewers {
+		if pr, ok := prMap[reviewer.PullRequestID]; ok {
+			pr.ReviewerIDs = append(pr.ReviewerIDs, reviewer.UserID)
+		}
+	}
+
+	result := make([]domain.PullRequest, 0, len(prMap))
+	for _, pr := range prMap {
+		result = append(result, *pr)
+	}
+
+	return result
+}
+
 func (r *PullRequestRepository) GetOpenPRsByReviewers(ctx context.Context, tx *sqlx.Tx, userIDs []string) ([]domain.PullRequest, error) {
 	const op = "internal.repository.postgres.GetOpenPRsByReviewers"
 
@@ -405,15 +425,7 @@ func (r *PullRequestRepository) GetOpenPRsByReviewers(ctx context.Context, tx *s
 		return nil, fmt.Errorf("%s: failed to select reviewers: %w", op, err)
 	}
 
-	prMap := make(map[string]*domain.PullRequest, len(prs))
-	for i := range prs {
-		prMap[prs[i].ID] = &prs[i]
-	}
-	for _, reviewer := range reviewers {
-		if pr, ok := prMap[reviewer.PullRequestID]; ok {
-			pr.ReviewerIDs = append(pr.ReviewerIDs, reviewer.UserID)
-		}
-	}
+	resultPRs := mapReviewersToPRs(prs, reviewers)
 
-	return prs, nil
+	return resultPRs, nil
 }
