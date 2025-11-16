@@ -14,11 +14,20 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// PullRequestService defines the application's business logic for pull requests.
 type PullRequestService interface {
+	// CreatePR creates a new pull request and automatically assigns up to two active reviewers
+	// from the author's team.
 	CreatePR(ctx context.Context, prID string, prName string, authorID string) (*api.PullRequest, error)
+	// MergePR marks a pull request as 'MERGED'. The operation is idempotent.
 	MergePR(ctx context.Context, prID string) (*api.PullRequest, error)
+	// ReassignReviewer replaces an assigned reviewer with another active member from the same team.
+	// Returns an error if the PR is already merged, the reviewer is not assigned,
+	// or no replacement candidate is available.
 	ReassignReviewer(ctx context.Context, prID string, oldReviewerID string) (*api.ReassignResponse, error)
+	// GetReviewAssignments returns a list of pull requests assigned to a specific user for review.
 	GetReviewAssignments(ctx context.Context, userID string) (*api.GetReviewResponse, error)
+	// GetStats retrieves review statistics for all users.
 	GetStats(ctx context.Context) (*api.StatsResponse, error)
 }
 
@@ -29,6 +38,7 @@ type PullRequestServiceImpl struct {
 	userPR  repository.UserPRRepository
 }
 
+// NewPullRequestService creates a new instance of PullRequestServiceImpl.
 func NewPullRequestService(
 	db Transactor,
 	log *slog.Logger,

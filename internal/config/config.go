@@ -16,11 +16,15 @@ type Config struct {
 }
 
 type Postgres struct {
-	Username string `env:"POSTGRES_USER" env-required:"true"`
-	Password string `env:"POSTGRES_PASSWORD" env-required:"true"`
-	Host     string `env:"POSTGRES_HOST" env-required:"true"`
-	Port     string `env:"POSTGRES_PORT" env-required:"true"`
-	Database string `env:"POSTGRES_DB" env-required:"true"`
+	Username        string        `env:"POSTGRES_USER" env-required:"true"`
+	Password        string        `env:"POSTGRES_PASSWORD" env-required:"true"`
+	Host            string        `env:"POSTGRES_HOST" env-required:"true"`
+	Port            string        `env:"POSTGRES_PORT" env-required:"true"`
+	Database        string        `env:"POSTGRES_DB" env-required:"true"`
+	MaxOpenConns    int           `yml:"max_open_conns" default:"50"`
+	MaxIdleConns    int           `yml:"max_idle_conns" default:"10"`
+	ConnMaxLifetime time.Duration `yml:"conn_max_lifetime" default:"5m"`
+	ConnMaxIdleTime time.Duration `yml:"conn_max_idle_time" default:"1m"`
 }
 
 type Server struct {

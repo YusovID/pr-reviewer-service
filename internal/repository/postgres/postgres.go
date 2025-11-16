@@ -19,5 +19,10 @@ func NewDB(cfg config.Postgres, log *slog.Logger) (*sqlx.DB, error) {
 		return nil, fmt.Errorf("can't connect to database: %w", err)
 	}
 
+	db.SetMaxOpenConns(cfg.MaxOpenConns)
+	db.SetMaxIdleConns(cfg.MaxIdleConns)
+	db.SetConnMaxLifetime(cfg.ConnMaxLifetime)
+	db.SetConnMaxIdleTime(cfg.ConnMaxIdleTime)
+
 	return db, nil
 }

@@ -10,8 +10,12 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// TeamService defines the application's business logic for managing teams.
 type TeamService interface {
+	// CreateTeamWithUsers handles the creation of a new team and its members.
+	// It ensures that a team with the same name does not already exist.
 	CreateTeamWithUsers(ctx context.Context, team api.Team) (*api.Team, error)
+	// GetTeam retrieves a team by its name, including all its members.
 	GetTeam(ctx context.Context, name string) (*api.Team, error)
 }
 
@@ -20,6 +24,7 @@ type TeamServiceImpl struct {
 	db   *sqlx.DB
 }
 
+// NewTeamService creates a new instance of TeamServiceImpl.
 func NewTeamService(repo repository.TeamRepository, db *sqlx.DB) *TeamServiceImpl {
 	return &TeamServiceImpl{
 		repo: repo,

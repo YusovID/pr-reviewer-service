@@ -1,3 +1,6 @@
+// package http implements the HTTP transport layer for the service.
+// It handles incoming requests, decodes them, calls the appropriate service methods,
+// and encodes the responses.
 package http
 
 import (
@@ -17,6 +20,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+// Server holds the dependencies for the HTTP server, including the logger and service interfaces.
 type Server struct {
 	log         *slog.Logger
 	teamService service.TeamService
@@ -24,6 +28,7 @@ type Server struct {
 	prService   service.PullRequestService
 }
 
+// NewServer creates a new instance of the HTTP server.
 func NewServer(
 	log *slog.Logger,
 	ts service.TeamService,
@@ -38,6 +43,8 @@ func NewServer(
 	}
 }
 
+// Routes sets up the router with all middleware and API endpoints.
+// It uses oapi-codegen for routing, ensuring compliance with the OpenAPI specification.
 func (s *Server) Routes() http.Handler {
 	mux := chi.NewRouter()
 
@@ -217,6 +224,8 @@ func (s *Server) PostTeamDeactivate(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// respond is a helper function to encode data to JSON and write it to the response.
+// It centralizes setting the Content-Type header and writing the status code.
 func (s *Server) respond(w http.ResponseWriter, code int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(code)
@@ -228,10 +237,12 @@ func (s *Server) respond(w http.ResponseWriter, code int, data interface{}) {
 	}
 }
 
+// respondError is a convenience wrapper around respond for sending simple error messages.
 func (s *Server) respondError(w http.ResponseWriter, code int, message string) {
 	s.respond(w, code, map[string]string{"error": message})
 }
 
+// respondAPIError formats and sends a structured error response that conforms to the OpenAPI specification.
 func (s *Server) respondAPIError(w http.ResponseWriter, code int, apiCode api.ErrorResponseErrorCode, message string) {
 	errResp := api.ErrorResponse{
 		Error: struct {
@@ -245,6 +256,8 @@ func (s *Server) respondAPIError(w http.ResponseWriter, code int, apiCode api.Er
 	s.respond(w, code, errResp)
 }
 
+// decodeAndValidate is a helper that deserializes a JSON request body into a struct
+// and then runs validation checks on it.
 func (s *Server) decodeAndValidate(r *http.Request, v interface{}) error {
 	if err := s.decode(r.Body, v); err != nil {
 		return err
@@ -257,6 +270,7 @@ func (s *Server) decodeAndValidate(r *http.Request, v interface{}) error {
 	return nil
 }
 
+// decode is a helper function to decode a JSON request body.
 func (s *Server) decode(body io.ReadCloser, v interface{}) error {
 	defer body.Close()
 
@@ -267,6 +281,8 @@ func (s *Server) decode(body io.ReadCloser, v interface{}) error {
 	return nil
 }
 
+// handleServiceError provides centralized error handling for all HTTP handlers.
+// It logs the internal error and maps it to a user-friendly HTTP response.
 func (s *Server) handleServiceError(w http.ResponseWriter, _ *http.Request, op string, err error) {
 	log := s.log.With(slog.String("op", op))
 	log.Error("service error occurred", sl.Err(err))

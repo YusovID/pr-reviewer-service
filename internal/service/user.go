@@ -11,8 +11,12 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// UserService defines the application's business logic for managing users and their team-wide state.
 type UserService interface {
+	// SetIsActive updates a user's active status.
 	SetIsActive(ctx context.Context, userID string, isActive bool) (*api.User, error)
+	// DeactivateTeam deactivates all members of a team and safely reassigns their open pull request reviews.
+	// Returns the count of deactivated users and reassigned PRs.
 	DeactivateTeam(ctx context.Context, teamName string) (deactivatedCount int, reassignedCount int, err error)
 }
 
@@ -25,6 +29,7 @@ type UserServiceImpl struct {
 	userPR   repository.UserPRRepository
 }
 
+// NewUserService creates a new instance of UserServiceImpl.
 func NewUserService(
 	repo repository.UserRepository,
 	teamRepo repository.TeamRepository,
