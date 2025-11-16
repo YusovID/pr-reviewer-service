@@ -18,9 +18,8 @@ type TeamRepositoryMock struct {
 
 var _ repository.TeamRepository = (*TeamRepositoryMock)(nil)
 
-func (m *TeamRepositoryMock) CreateTeamWithUsers(ctx context.Context, team api.Team) (*domain.TeamWithMembers, error) {
-	args := m.Called(ctx, team)
-
+func (m *TeamRepositoryMock) GetTeamByName(ctx context.Context, ext sqlx.ExtContext, name string) (*domain.TeamWithMembers, error) {
+	args := m.Called(ctx, ext, name)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -28,12 +27,11 @@ func (m *TeamRepositoryMock) CreateTeamWithUsers(ctx context.Context, team api.T
 	return args.Get(0).(*domain.TeamWithMembers), args.Error(1)
 }
 
-func (m *TeamRepositoryMock) GetTeamByName(ctx context.Context, name string) (*domain.TeamWithMembers, error) {
-	args := m.Called(ctx, name)
+func (m *TeamRepositoryMock) CreateTeamWithUsers(ctx context.Context, team api.Team) (*domain.TeamWithMembers, error) {
+	args := m.Called(ctx, team)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-
 	return args.Get(0).(*domain.TeamWithMembers), args.Error(1)
 }
 
@@ -133,6 +131,14 @@ func (m *PRQueryRepositoryMock) GetReviewAssignments(ctx context.Context, userID
 	return args.Get(0).([]domain.PullRequest), args.Error(1)
 }
 
+func (m *PRQueryRepositoryMock) GetOpenPRsByReviewers(ctx context.Context, tx *sqlx.Tx, userIDs []string) ([]domain.PullRequest, error) {
+	args := m.Called(ctx, tx, userIDs)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]domain.PullRequest), args.Error(1)
+}
+
 type UserPRRepositoryMock struct {
 	mock.Mock
 }
@@ -176,4 +182,12 @@ func (m *PRQueryRepositoryMock) GetUserStats(ctx context.Context) ([]domain.Stat
 	}
 
 	return args.Get(0).([]domain.Stats), args.Error(1)
+}
+
+func (m *UserRepositoryMock) DeactivateUsersByTeamID(ctx context.Context, tx *sqlx.Tx, teamID int) ([]string, error) {
+	args := m.Called(ctx, tx, teamID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]string), args.Error(1)
 }

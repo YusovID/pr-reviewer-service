@@ -139,7 +139,7 @@ func (tr *TeamRepository) upsertTeamMembers(ctx context.Context, tx *sqlx.Tx, te
 	return nil
 }
 
-func (tr *TeamRepository) GetTeamByName(ctx context.Context, name string) (*domain.TeamWithMembers, error) {
+func (tr *TeamRepository) GetTeamByName(ctx context.Context, ext sqlx.ExtContext, name string) (*domain.TeamWithMembers, error) {
 	const op = "internal.repository.postgres.GetTeamByName"
 	log := tr.log.With(slog.String("op", op), slog.String("team_name", name))
 	log.Info("getting team by name")
@@ -153,11 +153,11 @@ func (tr *TeamRepository) GetTeamByName(ctx context.Context, name string) (*doma
 	}
 
 	var team domain.Team
-	if err := tr.db.GetContext(ctx, &team, query, args...); err != nil {
+	if err := sqlx.GetContext(ctx, ext, &team, query, args...); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("%w: team with name '%s'", apperrors.ErrNotFound, name)
 		}
-
+		
 		return nil, fmt.Errorf("failed to get team by name: %w", err)
 	}
 
@@ -171,11 +171,11 @@ func (tr *TeamRepository) GetTeamByName(ctx context.Context, name string) (*doma
 	}
 
 	var members []domain.User
-	if err := tr.db.SelectContext(ctx, &members, queryMembers, args...); err != nil {
+	if err := sqlx.SelectContext(ctx, ext, &members, queryMembers, args...); err != nil {
 		return nil, fmt.Errorf("failed to get team members: %w", err)
 	}
 
-	log.Info("team getting successfull")
+	log.Info("team getting successful")
 
 	return &domain.TeamWithMembers{
 		ID:      team.ID,

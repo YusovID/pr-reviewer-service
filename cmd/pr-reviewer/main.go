@@ -48,8 +48,8 @@ func main() {
 	userRepo := postgres.NewUserRepository(db, log)
 	prRepo := postgres.NewPullRequestRepository(db, log)
 
-	teamService := service.NewTeamService(teamRepo)
-	userService := service.NewUserService(userRepo)
+	teamService := service.NewTeamService(teamRepo, db)
+	userService := service.NewUserService(userRepo, teamRepo, prRepo, prRepo, prRepo, db, log)
 	prService := service.NewPullRequestService(db, log, prRepo, prRepo, prRepo)
 
 	handler := myhttp.NewServer(log, teamService, userService, prService)

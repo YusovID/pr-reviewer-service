@@ -11,7 +11,7 @@ type TeamServiceMock struct {
 	mock.Mock
 }
 
-func (m *TeamServiceMock) CreateTeam(ctx context.Context, team api.Team) (*api.Team, error) {
+func (m *TeamServiceMock) CreateTeamWithUsers(ctx context.Context, team api.Team) (*api.Team, error) {
 	args := m.Called(ctx, team)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -89,4 +89,9 @@ func (m *PullRequestServiceMock) GetStats(ctx context.Context) (*api.StatsRespon
 	}
 
 	return args.Get(0).(*api.StatsResponse), args.Error(1)
+}
+
+func (m *UserServiceMock) DeactivateTeam(ctx context.Context, teamName string) (int, int, error) {
+	args := m.Called(ctx, teamName)
+	return args.Int(0), args.Int(1), args.Error(2)
 }

@@ -68,9 +68,9 @@ func TestTeamServiceImpl_CreateTeam(t *testing.T) {
 			repoMock := new(TeamRepositoryMock)
 			tc.setupMock(repoMock)
 
-			service := NewTeamService(repoMock)
+			service := NewTeamService(repoMock, nil)
 
-			resultTeam, err := service.CreateTeam(ctx, tc.inputTeam)
+			resultTeam, err := service.CreateTeamWithUsers(ctx, tc.inputTeam)
 
 			assert.Equal(t, tc.expectedTeam, resultTeam)
 
@@ -117,7 +117,7 @@ func TestTeamServiceImpl_GetTeam(t *testing.T) {
 			name:     "Success: Team is found",
 			teamName: teamName,
 			setupMock: func(repoMock *TeamRepositoryMock) {
-				repoMock.On("GetTeamByName", ctx, teamName).Return(domainTeamWithMembers, nil).Once()
+				repoMock.On("GetTeamByName", ctx, mock.Anything, teamName).Return(domainTeamWithMembers, nil).Once()
 			},
 			expectedTeam:  expectedAPITeam,
 			expectedError: nil,
@@ -126,7 +126,7 @@ func TestTeamServiceImpl_GetTeam(t *testing.T) {
 			name:     "Failure: Team not found",
 			teamName: "non-existent-team",
 			setupMock: func(repoMock *TeamRepositoryMock) {
-				repoMock.On("GetTeamByName", ctx, "non-existent-team").Return(nil, apperrors.ErrNotFound).Once()
+				repoMock.On("GetTeamByName", ctx, mock.Anything, "non-existent-team").Return(nil, apperrors.ErrNotFound).Once()
 			},
 			expectedTeam:  nil,
 			expectedError: apperrors.ErrNotFound,
@@ -135,7 +135,7 @@ func TestTeamServiceImpl_GetTeam(t *testing.T) {
 			name:     "Failure: Repository returns a generic error",
 			teamName: "any-team",
 			setupMock: func(repoMock *TeamRepositoryMock) {
-				repoMock.On("GetTeamByName", ctx, "any-team").Return(nil, errors.New("internal db error")).Once()
+				repoMock.On("GetTeamByName", ctx, mock.Anything, "any-team").Return(nil, errors.New("internal db error")).Once()
 			},
 			expectedTeam:  nil,
 			expectedError: errors.New("internal db error"),
@@ -147,7 +147,7 @@ func TestTeamServiceImpl_GetTeam(t *testing.T) {
 			repoMock := new(TeamRepositoryMock)
 			tc.setupMock(repoMock)
 
-			service := NewTeamService(repoMock)
+			service := NewTeamService(repoMock, nil)
 
 			resultTeam, err := service.GetTeam(ctx, tc.teamName)
 

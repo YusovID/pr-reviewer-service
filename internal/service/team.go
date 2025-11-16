@@ -7,22 +7,27 @@ import (
 	"github.com/YusovID/pr-reviewer-service/internal/domain"
 	"github.com/YusovID/pr-reviewer-service/internal/repository"
 	"github.com/YusovID/pr-reviewer-service/pkg/api"
+	"github.com/jmoiron/sqlx"
 )
 
 type TeamService interface {
-	CreateTeam(ctx context.Context, team api.Team) (*api.Team, error)
+	CreateTeamWithUsers(ctx context.Context, team api.Team) (*api.Team, error)
 	GetTeam(ctx context.Context, name string) (*api.Team, error)
 }
 
 type TeamServiceImpl struct {
 	repo repository.TeamRepository
+	db   *sqlx.DB
 }
 
-func NewTeamService(repo repository.TeamRepository) *TeamServiceImpl {
-	return &TeamServiceImpl{repo: repo}
+func NewTeamService(repo repository.TeamRepository, db *sqlx.DB) *TeamServiceImpl {
+	return &TeamServiceImpl{
+		repo: repo,
+		db:   db,
+	}
 }
 
-func (s *TeamServiceImpl) CreateTeam(ctx context.Context, team api.Team) (*api.Team, error) {
+func (s *TeamServiceImpl) CreateTeamWithUsers(ctx context.Context, team api.Team) (*api.Team, error) {
 	domainTeamWithMembers, err := s.repo.CreateTeamWithUsers(ctx, team)
 	if err != nil {
 		return nil, fmt.Errorf("repo.CreateTeamWithUsers failed: %w", err)
@@ -32,7 +37,7 @@ func (s *TeamServiceImpl) CreateTeam(ctx context.Context, team api.Team) (*api.T
 }
 
 func (s *TeamServiceImpl) GetTeam(ctx context.Context, name string) (*api.Team, error) {
-	domainTeam, err := s.repo.GetTeamByName(ctx, name)
+	domainTeam, err := s.repo.GetTeamByName(ctx, s.db, name)
 	if err != nil {
 		return nil, fmt.Errorf("repo.GetTeamByName failed: %w", err)
 	}

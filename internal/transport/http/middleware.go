@@ -1,9 +1,12 @@
 package http
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 func (s *Server) logRequest(next http.Handler) http.Handler {
@@ -27,4 +30,34 @@ func (s *Server) logRequest(next http.Handler) http.Handler {
 			slog.String("duration", time.Since(t1).String()),
 		)
 	})
+}
+
+type contextKey string
+
+const (
+	requestIDHeader = "X-Request-ID"
+	requestIDKey    = contextKey("requestID")
+)
+
+func (s *Server) requestID(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestID := r.Header.Get(requestIDHeader)
+		if requestID == "" {
+			requestID = uuid.NewString()
+		}
+
+		w.Header().Set(requestIDHeader, requestID)
+
+		ctx := context.WithValue(r.Context(), requestIDKey, requestID)
+
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func getRequestID(ctx context.Context) string {
+	if reqID, ok := ctx.Value(requestIDKey).(string); ok {
+		return reqID
+	}
+
+	return ""
 }

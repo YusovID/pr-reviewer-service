@@ -72,3 +72,23 @@ func (ur *UserRepository) SetIsActive(ctx context.Context, userID string, isActi
 		IsActive: dbUser.IsActive,
 	}, nil
 }
+
+func (ur *UserRepository) DeactivateUsersByTeamID(ctx context.Context, tx *sqlx.Tx, teamID int) ([]string, error) {
+	const op = "internal.repository.postgres.DeactivateUsersByTeamID"
+
+	query, args, err := ur.sq.Update("users").
+		Set("is_active", false).
+		Where(sq.Eq{"team_id": teamID, "is_active": true}).
+		Suffix("RETURNING id").
+		ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("%s: failed to build update query: %w", op, err)
+	}
+
+	var deactivatedUserIDs []string
+	if err := tx.SelectContext(ctx, &deactivatedUserIDs, query, args...); err != nil {
+		return nil, fmt.Errorf("%s: failed to execute update: %w", op, err)
+	}
+
+	return deactivatedUserIDs, nil
+}

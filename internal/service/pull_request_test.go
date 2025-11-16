@@ -9,31 +9,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/YusovID/pr-reviewer-service/internal/apperrors"
 	"github.com/YusovID/pr-reviewer-service/internal/domain"
 	"github.com/YusovID/pr-reviewer-service/pkg/api"
-	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
-
-func newMockDBAndTx(t *testing.T) (*sqlx.DB, *sqlx.Tx, sqlmock.Sqlmock) {
-	t.Helper()
-
-	mockDB, smock, err := sqlmock.New()
-	require.NoError(t, err)
-
-	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-
-	smock.ExpectBegin()
-
-	tx, err := sqlxDB.Beginx()
-	require.NoError(t, err)
-
-	return sqlxDB, tx, smock
-}
 
 func TestPullRequestServiceImpl_CreatePR(t *testing.T) {
 	ctx := context.Background()

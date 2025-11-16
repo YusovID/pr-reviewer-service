@@ -11,11 +11,12 @@ import (
 
 type TeamRepository interface {
 	CreateTeamWithUsers(ctx context.Context, team api.Team) (*domain.TeamWithMembers, error)
-	GetTeamByName(ctx context.Context, name string) (*domain.TeamWithMembers, error)
+	GetTeamByName(ctx context.Context, ext sqlx.ExtContext, name string) (*domain.TeamWithMembers, error)
 }
 
 type UserRepository interface {
 	SetIsActive(ctx context.Context, userID string, isActive bool) (*api.User, error)
+	DeactivateUsersByTeamID(ctx context.Context, tx *sqlx.Tx, teamID int) ([]string, error)
 }
 
 type PRQueryRepository interface {
@@ -24,6 +25,7 @@ type PRQueryRepository interface {
 	GetReviewerIDs(ctx context.Context, ext sqlx.ExtContext, prID string) ([]string, error)
 	GetReviewAssignments(ctx context.Context, userID string) ([]domain.PullRequest, error)
 	GetUserStats(ctx context.Context) ([]domain.Stats, error)
+	GetOpenPRsByReviewers(ctx context.Context, tx *sqlx.Tx, userIDs []string) ([]domain.PullRequest, error)
 }
 
 type PRCommandRepository interface {

@@ -34,7 +34,7 @@ func TestServer_PostTeamAdd(t *testing.T) {
 			name:        "Success",
 			requestBody: `{"team_name": "backend", "members": [{"user_id": "u1", "username": "Alice", "is_active": true}]}`,
 			setupMocks: func(tsm *TeamServiceMock) {
-				tsm.On("CreateTeam", mock.Anything, mock.MatchedBy(func(team api.Team) bool {
+				tsm.On("CreateTeamWithUsers", mock.Anything, mock.MatchedBy(func(team api.Team) bool {
 					return team.TeamName == inputTeam.TeamName
 				})).Return(&inputTeam, nil).Once()
 			},
@@ -45,7 +45,7 @@ func TestServer_PostTeamAdd(t *testing.T) {
 			name:        "Service Error - Already Exists",
 			requestBody: `{"team_name": "backend", "members": []}`,
 			setupMocks: func(tsm *TeamServiceMock) {
-				tsm.On("CreateTeam", mock.Anything, mock.Anything).Return(nil, &apperrors.TeamAlreadyExistsError{TeamName: "backend"}).Once()
+				tsm.On("CreateTeamWithUsers", mock.Anything, mock.Anything).Return(nil, &apperrors.TeamAlreadyExistsError{TeamName: "backend"}).Once()
 			},
 			expectedStatusCode:   http.StatusConflict,
 			expectedResponseBody: `{"error":{"code":"TEAM_EXISTS","message":"team with this name already exists"}}`,
@@ -509,6 +509,63 @@ func TestServer_GetStats(t *testing.T) {
 			assert.Equal(t, tc.expectedStatusCode, rr.Code)
 			assert.JSONEq(t, tc.expectedResponseBody, rr.Body.String())
 			prServiceMock.AssertExpectations(t)
+		})
+	}
+}
+
+func TestServer_PostTeamDeactivate(t *testing.T) {
+	testCases := []struct {
+		name                 string
+		requestBody          string
+		setupMocks           func(*UserServiceMock)
+		expectedStatusCode   int
+		expectedResponseBody string
+	}{
+		{
+			name:        "Success",
+			requestBody: `{"team_name": "team-to-nuke"}`,
+			setupMocks: func(usm *UserServiceMock) {
+				usm.On("DeactivateTeam", mock.Anything, "team-to-nuke").
+					Return(10, 5, nil).Once()
+			},
+			expectedStatusCode:   http.StatusOK,
+			expectedResponseBody: `{"deactivated_users_count": 10, "reassigned_prs_count": 5}`,
+		},
+		{
+			name:        "Service Error - Team Not Found",
+			requestBody: `{"team_name": "not-found-team"}`,
+			setupMocks: func(usm *UserServiceMock) {
+				usm.On("DeactivateTeam", mock.Anything, "not-found-team").
+					Return(0, 0, apperrors.ErrNotFound).Once()
+			},
+			expectedStatusCode:   http.StatusNotFound,
+			expectedResponseBody: `{"error":{"code":"NOT_FOUND","message":"resource not found"}}`,
+		},
+		{
+			name:                 "Invalid Request Body",
+			requestBody:          `{"team_name": ""}`,
+			setupMocks:           func(usm *UserServiceMock) {},
+			expectedStatusCode:   http.StatusBadRequest,
+			expectedResponseBody: `{"error": "validation failed: field 'TeamName' failed on the 'required' tag"}`,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			userServiceMock := new(UserServiceMock)
+			tc.setupMocks(userServiceMock)
+			server := NewServer(slog.New(slog.NewJSONHandler(os.Stdout, nil)), nil, userServiceMock, nil)
+
+			req := httptest.NewRequest(http.MethodPost, "/team/deactivate", strings.NewReader(tc.requestBody))
+			req.Header.Set("Content-Type", "application/json")
+
+			rr := httptest.NewRecorder()
+
+			router := api.Handler(server)
+			router.ServeHTTP(rr, req)
+
+			assert.Equal(t, tc.expectedStatusCode, rr.Code)
+			userServiceMock.AssertExpectations(t)
 		})
 	}
 }

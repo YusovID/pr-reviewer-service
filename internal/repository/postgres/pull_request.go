@@ -356,3 +356,64 @@ func (r *PullRequestRepository) GetUserStats(ctx context.Context) ([]domain.Stat
 
 	return stats, nil
 }
+
+func (r *PullRequestRepository) GetOpenPRsByReviewers(ctx context.Context, tx *sqlx.Tx, userIDs []string) ([]domain.PullRequest, error) {
+	const op = "internal.repository.postgres.GetOpenPRsByReviewers"
+
+	prIDsQuery, args, err := r.sq.Select("DISTINCT pull_request_id").
+		From("reviewers").
+		Join("pull_requests pr ON pr.id = reviewers.pull_request_id").
+		Where(sq.Eq{"reviewers.user_id": userIDs, "pr.status": "OPEN"}).
+		ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("%s: failed to build pr_ids query: %w", op, err)
+	}
+
+	var prIDs []string
+	if err := tx.SelectContext(ctx, &prIDs, prIDsQuery, args...); err != nil {
+		return nil, fmt.Errorf("%s: failed to select pr_ids: %w", op, err)
+	}
+
+	if len(prIDs) == 0 {
+		return []domain.PullRequest{}, nil
+	}
+
+	prsQuery, args, err := r.sq.Select("id", "name", "author_id", "status").
+		From("pull_requests").
+		Where(sq.Eq{"id": prIDs}).
+		Suffix("FOR UPDATE").
+		ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("%s: failed to build prs query: %w", op, err)
+	}
+
+	var prs []domain.PullRequest
+	if err := tx.SelectContext(ctx, &prs, prsQuery, args...); err != nil {
+		return nil, fmt.Errorf("%s: failed to select prs: %w", op, err)
+	}
+
+	reviewersQuery, args, err := r.sq.Select("pull_request_id", "user_id").
+		From("reviewers").
+		Where(sq.Eq{"pull_request_id": prIDs}).
+		ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("%s: failed to build reviewers query: %w", op, err)
+	}
+
+	var reviewers []domain.Reviewer
+	if err := tx.SelectContext(ctx, &reviewers, reviewersQuery, args...); err != nil {
+		return nil, fmt.Errorf("%s: failed to select reviewers: %w", op, err)
+	}
+
+	prMap := make(map[string]*domain.PullRequest, len(prs))
+	for i := range prs {
+		prMap[prs[i].ID] = &prs[i]
+	}
+	for _, reviewer := range reviewers {
+		if pr, ok := prMap[reviewer.PullRequestID]; ok {
+			pr.ReviewerIDs = append(pr.ReviewerIDs, reviewer.UserID)
+		}
+	}
+
+	return prs, nil
+}

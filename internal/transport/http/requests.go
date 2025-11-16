@@ -28,3 +28,7 @@ type reassignRequest struct {
 	PullRequestID string `json:"pull_request_id" validate:"required,custom_id,min=1,max=100"`
 	OldUserID     string `json:"old_user_id" validate:"required,custom_id,min=1,max=100"`
 }
+
+type deactivateTeamRequest struct {
+	TeamName string `json:"team_name" validate:"required,min=3,max=50"`
+}

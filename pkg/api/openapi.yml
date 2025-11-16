@@ -510,6 +510,7 @@ paths:
                     pull_request_name: Add search
                     author_id: u1
                     status: OPEN
+
   /stats:
     get:
       tags: [Health]
@@ -531,3 +532,40 @@ paths:
                     username: Bob
                     open_reviews: 0
                     merged_reviews: 15
+
+  /team/deactivate:
+    post:
+      tags: [Teams]
+      summary: Массово деактивировать всех пользователей команды и переназначить их открытые PR
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ team_name ]
+              properties:
+                team_name:
+                  type: string
+            example:
+              team_name: "backend-disbanded"
+      responses:
+        '200':
+          description: Операция успешно выполнена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deactivated_users_count:
+                    type: integer
+                  reassigned_prs_count:
+                    type: integer
+              example:
+                deactivated_users_count: 15
+                reassigned_prs_count: 42
+        '404':
+          description: Команда не найдена
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }

@@ -79,7 +79,7 @@ func (s *Server) PostTeamAdd(w http.ResponseWriter, r *http.Request) {
 		Members:  apiMembers,
 	}
 
-	team, err := s.teamService.CreateTeam(r.Context(), apiTeam)
+	team, err := s.teamService.CreateTeamWithUsers(r.Context(), apiTeam)
 	if err != nil {
 		s.handleServiceError(w, r, op, err)
 		return
@@ -194,6 +194,27 @@ func (s *Server) GetStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.respond(w, http.StatusOK, stats)
+}
+
+func (s *Server) PostTeamDeactivate(w http.ResponseWriter, r *http.Request) {
+	const op = "internal.transport.http.PostTeamDeactivate"
+
+	var req deactivateTeamRequest
+	if err := s.decodeAndValidate(r, &req); err != nil {
+		s.handleServiceError(w, r, op, err)
+		return
+	}
+
+	deactivatedCount, reassignedCount, err := s.userService.DeactivateTeam(r.Context(), req.TeamName)
+	if err != nil {
+		s.handleServiceError(w, r, op, err)
+		return
+	}
+
+	s.respond(w, http.StatusOK, map[string]int{
+		"deactivated_users_count": deactivatedCount,
+		"reassigned_prs_count":    reassignedCount,
+	})
 }
 
 func (s *Server) respond(w http.ResponseWriter, code int, data interface{}) {

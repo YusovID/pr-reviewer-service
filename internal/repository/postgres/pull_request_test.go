@@ -269,3 +269,55 @@ func TestPullRequestRepository_GetPRByIDWithLock(t *testing.T) {
 
 	require.NoError(t, tx.Rollback())
 }
+
+func TestPullRequestRepository_GetOpenPRsByReviewers(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode.")
+	}
+	setupPRTest(t)
+	repo := NewPullRequestRepository(testDB, logger)
+	ctx := context.Background()
+
+	pr1 := &domain.PullRequest{ID: "pr-open-1", Name: "Open PR 1", AuthorID: "author", Status: api.PullRequestStatusOPEN}
+	pr2 := &domain.PullRequest{ID: "pr-open-2", Name: "Open PR 2", AuthorID: "author", Status: api.PullRequestStatusOPEN}
+	pr3 := &domain.PullRequest{ID: "pr-merged-1", Name: "Merged PR 1", AuthorID: "author", Status: api.PullRequestStatusMERGED}
+	pr4 := &domain.PullRequest{ID: "pr-open-other", Name: "Other Open PR", AuthorID: "author", Status: api.PullRequestStatusOPEN}
+
+	tx, err := testDB.Beginx()
+	require.NoError(t, err)
+	require.NoError(t, repo.CreatePR(ctx, tx, pr1))
+	require.NoError(t, repo.CreatePR(ctx, tx, pr2))
+	require.NoError(t, repo.CreatePR(ctx, tx, pr3))
+	require.NoError(t, repo.CreatePR(ctx, tx, pr4))
+
+	require.NoError(t, repo.AssignReviewers(ctx, tx, "pr-open-1", []string{"rev1"}))
+	require.NoError(t, repo.AssignReviewers(ctx, tx, "pr-open-2", []string{"rev1", "rev2"}))
+	require.NoError(t, repo.AssignReviewers(ctx, tx, "pr-merged-1", []string{"rev1"}))
+	require.NoError(t, repo.AssignReviewers(ctx, tx, "pr-open-other", []string{"rev4"}))
+	require.NoError(t, tx.Commit())
+
+	tx, err = testDB.Beginx()
+	require.NoError(t, err)
+
+	openPRs, err := repo.GetOpenPRsByReviewers(ctx, tx, []string{"rev1"})
+	require.NoError(t, err)
+	require.Len(t, openPRs, 2, "rev1 should have two open PRs")
+
+	prIDs := []string{openPRs[0].ID, openPRs[1].ID}
+	assert.Contains(t, prIDs, "pr-open-1")
+	assert.Contains(t, prIDs, "pr-open-2")
+	assert.NotContains(t, prIDs, "pr-merged-1")
+	assert.NotContains(t, prIDs, "pr-open-other")
+
+	for _, pr := range openPRs {
+		if pr.ID == "pr-open-2" {
+			assert.ElementsMatch(t, []string{"rev1", "rev2"}, pr.ReviewerIDs)
+		}
+	}
+
+	noOpenPRs, err := repo.GetOpenPRsByReviewers(ctx, tx, []string{"author"})
+	require.NoError(t, err)
+	assert.Empty(t, noOpenPRs)
+
+	require.NoError(t, tx.Rollback())
+}
