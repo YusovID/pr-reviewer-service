@@ -13,9 +13,6 @@ pipeline {
         // IP твоего сервера (задай здесь или в .env)
         SSH_HOST = "213.165.48.130" 
         SSH_USER = "deployer"
-
-        // Включаем BuildKit для быстрой сборки Docker образов
-        DOCKER_BUILDKIT = '1'
     }
 
     stages {
