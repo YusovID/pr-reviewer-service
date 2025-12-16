@@ -10,7 +10,7 @@ services:
     environment:
       - CONFIG_PATH=./config/docker.yml
     ports:
-      - 8080:8080
+      - 8083:8080
     networks:
       - app-net
     depends_on:
