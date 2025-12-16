@@ -101,7 +101,8 @@ func Load() (*MigrationCfg, error) {
 func up(m *migrate.Migrate) error {
 	if err := m.Up(); err != nil {
 		if errors.Is(err, migrate.ErrNoChange) {
-			return fmt.Errorf("no new migrations to apply")
+			log.Println("no new migrations to apply")
+			return nil
 		}
 
 		return fmt.Errorf("can't do migrations: %v", err)
