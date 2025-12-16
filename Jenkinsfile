@@ -3,8 +3,8 @@ pipeline {
 
     environment {
         // Имена образов
-        REGISTRY_IMAGE_APP = "registry.gitlab.com/yusovID/pr-reviewer-service/app"
-        REGISTRY_IMAGE_MIGRATOR = "registry.gitlab.com/yusovID/pr-reviewer-service/migrator"
+        REGISTRY_IMAGE_APP = "registry.gitlab.com/yusovid/pr-reviewer-service/app"
+        REGISTRY_IMAGE_MIGRATOR = "registry.gitlab.com/yusovid/pr-reviewer-service/migrator"
         
         // ID секретов из Jenkins
         REGISTRY_CREDS_ID = "docker-registry-creds"
