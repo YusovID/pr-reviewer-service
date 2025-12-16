@@ -1,5 +1,6 @@
 services:
   app:
+    image: ${APP_IMAGE:-pr-reviewer-service-app}
     build:
       context: .
       dockerfile: ./cmd/pr-reviewer/Dockerfile
@@ -37,6 +38,7 @@ services:
       - app-net
 
   migrator:
+    image: ${MIGRATOR_IMAGE:-pr-reviewer-service-migrator}
     build:
       context: .
       dockerfile: ./cmd/migrator/Dockerfile
@@ -67,8 +69,8 @@ services:
     image: grafana/grafana:latest
     container_name: grafana
     environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
     ports:
       - "3000:3000"
     networks:

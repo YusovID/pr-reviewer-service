@@ -1,0 +1,101 @@
+stages:
+  - test
+  - build
+  - deploy
+  - load_test
+
+variables:
+  # Глобальные настройки Docker
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "" # Отключаем TLS для простоты взаимодействия dind
+  
+  # Настройки путей к образам
+  APP_IMAGE: $CI_REGISTRY_IMAGE/app:latest
+  MIGRATOR_IMAGE: $CI_REGISTRY_IMAGE/migrator:latest
+
+run_tests:
+  stage: test
+  image: golang:1.25
+  services:
+    - name: docker:24.0.5-dind
+      alias: docker
+  variables:
+    # Указываем Go, где искать Docker демона (соседний контейнер dind)
+    DOCKER_HOST: tcp://docker:2375
+    # Хак для testcontainers, чтобы они понимали, что запущены в dind
+    TESTCONTAINERS_HOST_OVERRIDE: "docker"
+    # Отключаем Ryuk (сборщик мусора testcontainers), в CI он иногда мешает
+    TESTCONTAINERS_RYUK_DISABLED: "true"
+  before_script:
+    - go mod download
+  script:
+    - echo "Running Unit and Integration tests..."
+    # Запускаем тесты. Флаг -v для логов, -race для гонок, -tags=integration для включения всех тестов
+    - go test -v -race -tags=integration ./...
+
+build_images:
+  stage: build
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - export DOCKER_BUILDKIT=1
+    # Сборка приложения
+    - docker build --cache-from $APP_IMAGE -t $APP_IMAGE -f cmd/pr-reviewer/Dockerfile .
+    - docker push $APP_IMAGE
+    # Сборка мигратора
+    - docker build --cache-from $MIGRATOR_IMAGE -t $MIGRATOR_IMAGE -f cmd/migrator/Dockerfile .
+    - docker push $MIGRATOR_IMAGE
+
+deploy_to_vps:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan $SSH_HOST >> ~/.ssh/known_hosts
+  script:
+    - echo "Deploying to $SSH_HOST as user $SSH_USER..."
+    
+    # 1. Создаем директорию проекта
+    - ssh $SSH_USER@$SSH_HOST "mkdir -p ~/pr-reviewer"
+    
+    # 2. Копируем файлы конфигурации
+    - scp compose.yml $SSH_USER@$SSH_HOST:~/pr-reviewer/compose.yml
+    - scp prometheus.yml $SSH_USER@$SSH_HOST:~/pr-reviewer/prometheus.yml
+    - scp -r config/ $SSH_USER@$SSH_HOST:~/pr-reviewer/
+    
+    # 3. Создаем .env файл из переменной GitLab
+    - ssh $SSH_USER@$SSH_HOST "echo \"$ENV_FILE\" > ~/pr-reviewer/.env"
+
+    # 4. Обновляем контейнеры
+    # Переменные APP_IMAGE и MIGRATOR_IMAGE передаются в compose через environment
+    - ssh $SSH_USER@$SSH_HOST "
+        cd ~/pr-reviewer &&
+        export APP_IMAGE=$APP_IMAGE &&
+        export MIGRATOR_IMAGE=$MIGRATOR_IMAGE &&
+        docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY &&
+        docker compose pull &&
+        docker compose up -d --remove-orphans &&
+        docker image prune -f"
+  only:
+    - main
+    - master
+
+k6_load_test:
+  stage: load_test
+  image:
+    name: grafana/k6:latest
+    entrypoint: [""]
+  script:
+    - echo "Running load tests against production..."
+    # Переопределяем BASE_URL, чтобы он бил не в localhost, а в твой VPS
+    # Для этого в loadtests/main.js нужно использовать __ENV.BASE_URL || 'http://localhost:8080'
+    - k6 run -e BASE_URL=http://$SSH_HOST:8080 loadtests/main.js
+  allow_failure: true # Тест не завалит пайплайн, если упадет (для учебных целей)
+  when: manual # Запускать только вручную по кнопке, чтобы не спамить
