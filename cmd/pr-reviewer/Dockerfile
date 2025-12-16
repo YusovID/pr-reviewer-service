@@ -4,13 +4,18 @@ WORKDIR /app
 
 COPY go.mod go.sum ./
 
-RUN go mod download
+ENV GOPROXY=https://goproxy.io,direct
+
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
 COPY . .
 
 WORKDIR /app/cmd/pr-reviewer
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /pr-reviewer .
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux go build -o /pr-reviewer . 
 
 FROM alpine:3.22
 

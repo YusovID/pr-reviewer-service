@@ -18,6 +18,7 @@ import (
 	"github.com/YusovID/pr-reviewer-service/pkg/logger/sl"
 	"github.com/YusovID/pr-reviewer-service/swagger"
 	"github.com/go-chi/chi/v5"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // Server holds the dependencies for the HTTP server, including the logger and service interfaces.
@@ -50,6 +51,7 @@ func (s *Server) Routes() http.Handler {
 
 	mux.Use(s.requestID)
 	mux.Use(s.logRequest)
+	mux.Use(s.metricsMiddleware)
 
 	swaggerHandler, err := swagger.GetHandler()
 	if err != nil {
@@ -58,6 +60,7 @@ func (s *Server) Routes() http.Handler {
 		mux.Mount("/swagger", http.StripPrefix("/swagger", swaggerHandler))
 	}
 
+	mux.Handle("/metrics", promhttp.Handler())
 	mux.Mount("/", api.Handler(s))
 
 	return mux
