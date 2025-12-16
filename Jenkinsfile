@@ -2,8 +2,6 @@ pipeline {
     agent any
 
     environment {
-        // Замени на свой репозиторий (можно использовать Docker Hub, если GitLab Registry недоступен)
-        // Для DockerHub просто: "yusovid/pr-reviewer-app"
         REGISTRY_IMAGE_APP = "registry.gitlab.com/yusovid/pr-reviewer-service/app"
         REGISTRY_IMAGE_MIGRATOR = "registry.gitlab.com/yusovid/pr-reviewer-service/migrator"
         REGISTRY_CREDS_ID = "docker-registry-creds"
@@ -13,6 +11,12 @@ pipeline {
 
     stages {
         stage('Test') {
+            agent {
+                docker { 
+                    image 'golang:1.25'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock' 
+                }
+            }
             steps {
                 sh 'go test -v -race -tags=integration ./...'
             }
