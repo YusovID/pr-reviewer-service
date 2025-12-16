@@ -23,6 +23,9 @@ pipeline {
         }
 
         stage('Build & Push') {
+            environment {
+                DOCKER_BUILDKIT = '1'
+            }
             steps {
                 script {
                     docker.withRegistry('https://registry.gitlab.com', "${REGISTRY_CREDS_ID}") {
